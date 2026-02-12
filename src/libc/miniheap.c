@@ -4,6 +4,7 @@
 
 #define MINIHEAP_MAGIC_FREE 0xDEADBEEF
 #define MINIHEAP_MAGIC_USED 0xBEEFDEAD
+#define MINIHEAP_USEDHEADER_SIZE (((uint32_t)sizeof(miniheap_usedheader_t) + MINIHEAP_ALIGNMENT - 1u) & ~(MINIHEAP_ALIGNMENT - 1u))
 
 int miniheap_init(struct miniheap *heap, void *base, size_t size)
 {
@@ -32,7 +33,7 @@ static void *miniheap_alloc(miniheap_t *heap, size_t size)
     if (total_size == 0) {
         return NULL;
     }
-    total_size += sizeof(miniheap_usedheader_t);
+    total_size += MINIHEAP_USEDHEADER_SIZE;
     if (total_size > heap->free_bytes) {
         return NULL;
     }
@@ -51,6 +52,7 @@ static void *miniheap_alloc(miniheap_t *heap, size_t size)
             } else {
                 // split block
                 miniheap_freeblock_t *new_block = (miniheap_freeblock_t *)((uintptr_t)cur + total_size);
+                new_block->magic = MINIHEAP_MAGIC_FREE;
                 new_block->size = cur->size - total_size;
                 new_block->next = cur->next;
 
@@ -74,7 +76,7 @@ static void *miniheap_alloc(miniheap_t *heap, size_t size)
     used_header->magic = MINIHEAP_MAGIC_USED;
     used_header->size = total_size;
 
-    return (void *)((uintptr_t)cur + sizeof(miniheap_usedheader_t));
+    return (void *)((uintptr_t)cur + MINIHEAP_USEDHEADER_SIZE);
 }
 
 static void miniheap_free(miniheap_t *heap, void *ptr)
@@ -82,7 +84,7 @@ static void miniheap_free(miniheap_t *heap, void *ptr)
     if (!ptr) {
         return;
     }
-    miniheap_usedheader_t *block = (miniheap_usedheader_t *)((uintptr_t)ptr - sizeof(miniheap_usedheader_t));
+    miniheap_usedheader_t *block = (miniheap_usedheader_t *)((uintptr_t)ptr - MINIHEAP_USEDHEADER_SIZE);
 
     if (block->magic != MINIHEAP_MAGIC_USED) {
         panic("miniheap_free: invalid free\n");
@@ -104,6 +106,7 @@ static void miniheap_free(miniheap_t *heap, void *ptr)
     if (prev && (uintptr_t)prev + prev->size == (uintptr_t)block) {
         prev->size += size;
         new_block = prev;
+        ptr_rear = (uintptr_t)new_block + new_block->size;
     } else {
         new_block->size = size;
         new_block->next = (uint64_t)cur;

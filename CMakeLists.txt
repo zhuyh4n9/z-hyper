@@ -22,6 +22,7 @@ add_executable(z-hyper.elf
     src/main/el2_sync.c
     src/main/exception.S
     src/main/main.c
+    src/main/miniheap_stress_test.c
     src/libc/string.c
     src/libc/printf.c
     src/libc/rand.c

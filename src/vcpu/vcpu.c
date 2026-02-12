@@ -112,4 +112,4 @@ void pcpu_switch(pcpu_t *pcpu, aarch64_gpregs_t *gpregs)
     next->state = VCPU_STATE_RUNNING;
     pcpu->current_vcpu = next;
     vcpu_restore_context(next, gpregs);
-}
+} 

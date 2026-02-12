@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <errno.h>
 
 typedef struct miniheap miniheap_t;
 typedef struct heap_operations heap_operations_t;
@@ -12,24 +13,29 @@ struct heap_operations {
     void (*free)(miniheap_t *heap, void *ptr);
 };
 
-#define MINIHEAP_ALIGNMENT    (32)
+#define MINIHEAP_ALIGNMENT    (16)
 
 typedef struct miniheap_freeblock {
-    uint64_t size;
-    struct miniheap_freeblock *next;
+    uint32_t magic;
+    uint32_t size;
+    uint64_t next;
 } miniheap_freeblock_t;
+
+typedef struct miniheap_usedheader {
+    uint32_t magic;
+    uint32_t size;
+} miniheap_usedheader_t;
 
 struct miniheap {
     void *base;
     size_t size;
-    size_t used;
-    uint32_t flags;
+    size_t free_bytes;
+    uint32_t align;
     miniheap_freeblock_t *free_list;
-    heap_operations_t *ops;
 };
-
+void dump_miniheap(miniheap_t *heap);
 extern struct miniheap g_miniheap;
 
-void miniheap_init(struct miniheap *heap, void *base, size_t size);
+int miniheap_init(struct miniheap *heap, void *base, size_t size);
 
 #endif

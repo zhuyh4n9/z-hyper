@@ -3,3 +3,5 @@
 #define GICD_BASE     0x8000000
 #define GICR_BASE     0x80a0000
 #define GICC_BASE     0x0f60000
+
+#define ZHYPER_HEAP_SIZE 0x100000 /* 1MB heap */

@@ -1,10 +1,11 @@
 #include <stdlib.h>
+#include <stdio.h>
 
-static unsigned long next = 1;
+static unsigned long next = 0xDEADBEEF;
 
 int rand(void)
 {
-    next = next * 1103515245 + 12345;
+    next = (next * 0x1234 + 12345) * next;
     return (unsigned int)(next / 65536) % 32768;
 }
 

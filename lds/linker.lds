@@ -1,9 +1,10 @@
-#include "layout.h"
+INCLUDE "../include/layout.h"
 
 EXTERN(_start);
 ENTRY(_start);
 
 ZHIMGE_VADDR = 0x40200000;
+ZHYPER_HEAP_SIZE = 0x100000; /* 1MB heap */
 SECTIONS
 {
     . = ZHIMGE_VADDR;
@@ -28,9 +29,13 @@ SECTIONS
     .stack : {
         . = ALIGN(0x1000);
         __stack_start = .;
-        . += 0x4000; /* 16KB stack */
+        . += 0x8000; /* 16KB stack */
         __stack_end = .;
     }
     . = ALIGN(0x1000);
+    .heap : {
+        __heap_start = .;
+        . += ZHYPER_HEAP_SIZE; /* 1MB heap */
+    }
     HIMAGE_END = .;
 }

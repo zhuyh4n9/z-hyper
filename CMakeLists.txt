@@ -25,6 +25,7 @@ add_executable(z-hyper.elf
     src/libc/string.c
     src/libc/printf.c
     src/libc/rand.c
+    src/libc/miniheap.c
     src/driver/pl011/pl011.c
 )
 

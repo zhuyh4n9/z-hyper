@@ -1,0 +1,5 @@
+#define ZHIMGE_VADDR  0x40200000
+
+#define GICD_BASE     0x8000000
+#define GICR_BASE     0x80a0000
+#define GICC_BASE     0x0f60000

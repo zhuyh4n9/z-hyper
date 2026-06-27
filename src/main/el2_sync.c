@@ -77,16 +77,16 @@ int el2_sync(struct aarch64_gpregs *regs)
     uint64_t ec = ESR_EC(esr);
 
     switch (ec) {
-        case EC_DATA_ABORT_LOWER_EL:
-        case EC_DATA_ABORT_SAME_EL:
-            el2_dabt(regs);
-            break;
-        default:
-            printf("Unhandled EL2 Sync Exception! \n");
-            fflush(NULL);
-            dump_registers(regs);
-            hang();
-            break;
+    case EC_DATA_ABORT_LOWER_EL:
+    case EC_DATA_ABORT_SAME_EL:
+        el2_dabt(regs);
+        break;
+    default:
+        printf("Unhandled EL2 Sync Exception! \n");
+        fflush(NULL);
+        dump_registers(regs);
+        hang();
+        break;
     }
     return 0;
 }

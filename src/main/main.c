@@ -7,8 +7,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+void miniheap_reliability_stress_test(void);
 extern void el2_exception_init(void);
-extern void miniheap_reliability_stress_test(void);
 
 void test_memset(void)
 {
@@ -48,8 +48,7 @@ int platform_init() {
     printf("current EL: %d\n", get_current_el());
     printf("pstate: %x\n", pstate());
     printf("Platform initialized \n");
-    // test_memset();
-    // test_memcpy();
+
     test_rand();
     miniheap_reliability_stress_test();
     panic("Test panic function");

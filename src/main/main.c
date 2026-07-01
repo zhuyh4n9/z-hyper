@@ -3,6 +3,7 @@
 #include "platform/debug.h"
 #include "utils/miniheap.h"
 #include "layout.h"
+#include "platform/gic/gicd.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -51,6 +52,11 @@ int platform_init() {
 
     test_rand();
     miniheap_reliability_stress_test();
+    gicv3_init();
     panic("Test panic function");
+
+    while (1) {
+        asm volatile ("wfi");
+    }
     return 0;
 }

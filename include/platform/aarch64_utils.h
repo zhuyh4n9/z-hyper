@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include "utils/types.h"
+
 typedef struct aarch64_gpregs {
     uint64_t x[31];
     uint64_t sp;
@@ -143,6 +145,16 @@ static inline uint64_t read_far_el2(void)
     asm volatile ("mrs %0, " #reg : "=r" (val)); \
     val; \
 })
+
+static inline void write32(paddr_t addr, uint32_t value)
+{
+    *(volatile uint32_t *)addr = value;
+}
+
+static inline uint32_t read32(paddr_t addr)
+{
+    return *(volatile uint32_t *)addr;
+}
 
 #define write_sysreg(reg, val) do { \
     asm volatile ("msr " #reg ", %0" : : "r" (val)); \

@@ -9,13 +9,13 @@ set(CMAKE_C_COMPILER 	"${CROSS_COMPILE}gcc-14")
 set(CMAKE_ASM_COMPILER 	"${CROSS_COMPILE}gcc-14")
 set(CMAKE_LINKER 		"${CROSS_COMPILE}ld")
 set(CMAKE_ASM_FLAGS 	"-march=armv8-a+nosimd+nofp")
-set(CMAKE_C_FLAGS   	"-march=armv8-a+nosimd+nofp")
-
 
 include_directories(${CMAKE_SOURCE_DIR}/include
                     ${CMAKE_SOURCE_DIR}/include/libc)
 set(CMAKE_ASM_FLAGS "-ffreestanding -Wextra -Wfatal-errors -Werror -O0 -D__ASSEMBLY__")
-set(CMAKE_C_FLAGS "-Wall -Wextra -Werror -O0 -g -nostdlib -ffreestanding -mstrict-align")
+set(BUILD_FLAGS "-Wall -Wextra -Werror -O0 -g -nostdlib -ffreestanding -mstrict-align")
+set(CMAKE_C_FLAGS "${BUILD_FLAGS} -DNR_CPU=${NR_CPU}")
+
 
 add_executable(z-hyper.elf
     src/main/start.S
@@ -28,6 +28,7 @@ add_executable(z-hyper.elf
     src/libc/rand.c
     src/libc/miniheap.c
     src/driver/pl011/pl011.c
+    src/driver/gic/gicv3.c
 )
 
 target_link_options(z-hyper.elf PRIVATE

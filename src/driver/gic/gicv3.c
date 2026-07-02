@@ -3,25 +3,83 @@
 #include "utils/types.h"
 #include "platform/aarch64_utils.h"
 #include "platform/gic/gicd.h"
+#include "platform/debug.h"
 #include <stdint.h>
 
-#define SPI_FIRST_INTID     32
-#define SPI_LAST_INTID      1019
+extern uint8_t __gic_context_start;
+extern uint8_t __gic_context_end;
 
-struct gicv3_distributor_regs *gicd = (struct gicv3_distributor_regs *)GICD_BASE;
+#define GIC_CONTEXT_SIZE         (&__gic_context_end - &__gic_context_start)
 
-int gicv3_distributor_init(void)
+gicd_context_t *get_gicd_context(void)
 {
+    return (gicd_context_t *)&__gic_context_start;
+}
+
+void gicv3_show_distributor(gicd_context_t *gicd_ctx)
+{
+    printf("GICD: gicd_regs=0x%lx\n", (uint64_t)gicd_ctx->gicd_regs);
+    printf ("GICD: itlinesnumber=%u, spi_count=%u, cpunumber=%u\n"
+        "securityextn=%u, mbis=%u, lpis=%u, num_lpis=%u, a3v=%u, no1n=%u\n",
+        gicd_ctx->itlinesnumber, gicd_ctx->spi_count, gicd_ctx->cpunumber,
+        gicd_ctx->securityextn, gicd_ctx->mbis, gicd_ctx->lpis,
+        gicd_ctx->num_lpis, gicd_ctx->a3v, gicd_ctx->no1n);
+    printf("GICD: implementer=0x%x, revision=%u, variant=%u, productid=0x%x\n",
+        gicd_ctx->implementer, gicd_ctx->revision, gicd_ctx->variant,
+        gicd_ctx->productid);
+    printf("GICD: ds=%u, enable_grp0=%u, enable_grp1=%u, are=%u\n",
+        gicd_ctx->ds, gicd_ctx->enable_grp0, gicd_ctx->enable_grp1,
+        gicd_ctx->are);
+    printf("GICD: e1nwf=%u\n", gicd_ctx->e1nwf);
+}
+
+static int gicd_init(void)
+{
+    uint32_t typer = 0;
+    gicd_context_t *gicd_ctx = NULL;
+    uint32_t id = 0;
+    gicv3_distributor_regs_t *gicd = (gicv3_distributor_regs_t *)GICD_BASE;
+    uint32_t ctrl = 0;
+
+    gicd_ctx = get_gicd_context();
+    if (gicd_ctx == NULL) {
+        panic("Failed to get GICD context\n");
+    }
+    gicd_ctx->gicd_regs = gicd;
+
+    // read gicd attributes
+    typer = read32((paddr_t)&gicd->typer);
+    gicd_ctx->itlinesnumber = (typer >> GICD_TYPER_ITLINESNUMBER_SHIFT) & GICD_TYPER_ITLINESNUMBER_MASK;
+    gicd_ctx->spi_count = (gicd_ctx->itlinesnumber + 1) * 32 - SPI_FIRST_INTID;
+    gicd_ctx->cpunumber = (typer >> GICD_TYPER_CPUNUMBER_SHIFT) & GICD_TYPER_CPUNUMBER_MASK;
+    gicd_ctx->securityextn = (typer & GICD_TYPER_SECURITYEXTN) ? 1 : 0;
+    gicd_ctx->mbis = (typer & GICD_TYPER_MBIS) ? 1 : 0;
+    gicd_ctx->lpis = (typer & GICD_TYPER_LPIS) ? 1 : 0;
+    gicd_ctx->num_lpis = (typer >> GICD_TYPER_NUM_LPIS_SHIFT) & GICD_TYPER_NUM_LPIS_MASK;
+    gicd_ctx->a3v = (typer & GICD_TYPER_A3V) ? 1 : 0;
+    gicd_ctx->no1n = (typer & GICD_TYPER_NO1N) ? 1 : 0;
+    // read gicd identifier
+    id = read32((paddr_t)&gicd->iidr);
+    gicd_ctx->implementer = (id >> GICD_IIDR_IMPLEMENTER_SHIFT) & GICD_IIDR_IMPLEMENTER_MASK;
+    gicd_ctx->revision = (id >> GICD_IIDR_REVISION_SHIFT) & GICD_IIDR_REVISION_MASK;
+    gicd_ctx->variant = (id >> GICD_IIDR_VARIANT_SHIFT) & GICD_IIDR_VARIANT_MASK;
+    gicd_ctx->productid = (id >> GICD_IIDR_PRODUCTID_SHIFT) & GICD_IIDR_PRODUCTID_MASK;
+
+    // gicd configs, write to GICD_CTLR
+    gicd_ctx->enable_grp0 = 0; // Enable Group 0 interrupts, ignored for this EL2 software
+    gicd_ctx->enable_grp1 = 1; // Enable Group 1 interrupts, ignored for this EL2 software
+    gicd_ctx->are = 0; // Affinity Routing Enable, ignored for this EL2 software
+    gicd_ctx->e1nwf = 0; // Enable 1 of N Wake-up, ignored for this EL2 software
+    gicd_ctx->reserved = 0; // Reserved bits
+
     printf("GICv3 Distributor init: 0x%lx\n", (uint64_t)&gicd->ctlr);
     write32((paddr_t)&gicd->ctlr, 0x0);
 
-    printf("gicd disabled\n");
-
-    for (uint32_t i = 0; i < 32; i++) {
-        write32((paddr_t)&gicd->igroupr[i], 0xFFFFFFFF); // all interrupts are group 1 (non-secure)
-        write32((paddr_t)&gicd->icenabler[i], 0xFFFFFFFF); // disable all interrupts
-        write32((paddr_t)&gicd->icpendr[i], 0xFFFFFFFF); // clear all pending interrupts
-        write32((paddr_t)&gicd->icactiver[i], 0xFFFFFFFF); // clear all active interrupts
+    for (uint32_t i = 0; i < gicd_ctx->itlinesnumber; i++) {
+        write32((paddr_t)&gicd->igroupr[i + 1], 0xFFFFFFFF); // all interrupts are group 1 (non-secure)
+        write32((paddr_t)&gicd->icenabler[i + 1], 0xFFFFFFFF); // disable all interrupts
+        write32((paddr_t)&gicd->icpendr[i + 1], 0xFFFFFFFF); // clear all pending interrupts
+        write32((paddr_t)&gicd->icactiver[i + 1], 0xFFFFFFFF); // clear all active interrupts
     }
 
     //clear sgi pending
@@ -29,126 +87,27 @@ int gicv3_distributor_init(void)
         write32((paddr_t)&gicd->cpendsgir[i], 0xFFFFFFFF);
     }
 
-    write32((paddr_t)&gicd->ctlr,
-        GICD_CTLR_ENABLE_GRP0 | GICD_CTLR_ENABLE_GRP1_NS
-        | GICD_CTLR_ARE_S | GICD_CTLR_ARE_NS);
+    ctrl = (gicd_ctx->enable_grp0 << GICD_CTLR_ENABLE_GRP0_SHIFT)
+        | (gicd_ctx->enable_grp1 << GICD_CTLR_ENABLE_GRP1_SHIFT)
+        | (gicd_ctx->are << GICD_CTLR_ARE_SHIFT);
+
+    write32((paddr_t)&gicd->ctlr, ctrl);
+
+    ctrl = read32((paddr_t)&gicd->ctlr); // ensure the write is completed
+
+
+    gicd_ctx->ds = (ctrl & GICD_CTLR_DS) ? 1 : 0;
+    gicd_ctx->enable_grp0 = (ctrl & GICD_CTLR_ENABLE_GRP0) ? 1 : 0;
+    gicd_ctx->enable_grp1 = (ctrl & GICD_CTLR_ENABLE_GRP1) ? 1 : 0;
+    gicd_ctx->are = (ctrl & GICD_CTLR_ARE) ? 1 : 0;
+    gicd_ctx->e1nwf = (ctrl & GICD_CTLR_E1NWF) ? 1 : 0;
 
     printf("gicd init done!\n");
+    gicv3_show_distributor(gicd_ctx);
     return 0;    
 }
 
-int gicd_set_spi_priority(uint32_t intid, uint8_t priority)
-{
-    if (intid < SPI_FIRST_INTID || intid > SPI_LAST_INTID) {
-        printf("Invalid interrupt ID: %u\n", intid);
-        return -1;
-    }
-
-    uint32_t reg_index = intid >> 2;
-    uint32_t byte_offset = intid & 0x3;
-
-    uint32_t current_value = read32((paddr_t)&gicd->ipriorityr[reg_index]);
-    current_value &= ~(0xFF << (byte_offset * 8));
-    current_value |= ((uint32_t)priority << (byte_offset * 8));
-
-    write32((paddr_t)&gicd->ipriorityr[reg_index], current_value);
-    return 0;
-}
-
-uint8_t gicd_get_spi_priority(uint32_t intid)
-{
-    if (intid < SPI_FIRST_INTID || intid > SPI_LAST_INTID) {
-        printf("Invalid interrupt ID: %u\n", intid);
-        return 0xFF; // Return an invalid priority for out-of-range IDs
-    }
-
-    uint32_t reg_index = intid >> 2;
-    uint32_t byte_offset = intid & 0x3;
-
-    uint32_t current_value = read32((paddr_t)&gicd->ipriorityr[reg_index]);
-    return (uint8_t)((current_value >> (byte_offset * 8)) & 0xFF);
-}
-
-uint8_t gicd_get_spi_group(uint32_t intid)
-{
-    if (intid < SPI_FIRST_INTID || intid > SPI_LAST_INTID) {
-        printf("Invalid interrupt ID: %u\n", intid);
-        return 0xFF; // Return an invalid group for out-of-range IDs
-    }
-
-    uint32_t reg_index = intid >> 5;
-    uint32_t bit_offset = intid & 0x1F;
-
-    uint32_t current_value = read32((paddr_t)&gicd->igroupr[reg_index]);
-    return (uint8_t)((current_value >> bit_offset) & 0x1);
-}
-
-uint8_t gicd_get_spi_security(uint32_t intid)
-{
-    if (intid < SPI_FIRST_INTID || intid > SPI_LAST_INTID) {
-        printf("Invalid interrupt ID: %u\n", intid);
-        return -1;
-    }
-
-    uint32_t reg_index = intid >> 5;
-    uint32_t bit_offset = intid & 0x1F;
-
-    uint32_t current_value = read32((paddr_t)&gicd->isenabler[reg_index]);
-    return (uint8_t)((current_value >> bit_offset) & 0x1);
-}
-
-int gicd_set_spi_affinity(uint32_t intid, uint32_t affinity)
-{
-    uint64_t affinity_value = 0;
-    uint32_t gicd_ctrl = 0;
-    uint8_t group = 0;
-    uint8_t security = 0;
-
-    if (intid < SPI_FIRST_INTID || intid > SPI_LAST_INTID) {
-        printf("Invalid interrupt ID: %u\n", intid);
-        return -1;
-    }
-    gicd_ctrl = read32(&gicd->ctlr);
-    if ((gicd_ctrl & (GICD_CTLR_ARE_S | GICD_CTLR_ARE_NS)) == 0) {
-        printf("Affinity routing is not enabled in GICD_CTLR\n");
-        return -1;
-    }
-
-    // FIX ME
-    group = gicd_get_spi_group(intid);
-    security = gicd_get_spi_security(intid);
-    
-    if (group == 0 && security == 0) {
-        printf("Interrupt ID %u is Group 0 Secure, cannot set affinity\n", intid);
-        return -1;
-    }
-
-    affinity_value |= obtain_bits_range32(affinity, 0, 7);
-    affinity_value |= ((uint64_t)obtain_bits_range32(affinity, 8, 15) << 8);
-    affinity_value |= ((uint64_t)obtain_bits_range32(affinity, 16, 23) << 16);
-    affinity_value |= ((uint64_t)obtain_bits_range32(affinity, 24, 31) << 32);
-
-    write32((paddr_t)&gicd->irouter[intid], (uint32_t)affinity_value);
-
-    return 0;
-}
-
-
-int gicd_enable_spi(uint32_t intid)
-{
-    if (intid < SPI_FIRST_INTID || intid > SPI_LAST_INTID) {
-        printf("Invalid interrupt ID: %u\n", intid);
-        return -1;
-    }
-
-    uint32_t reg_index = intid >> 5;
-    uint32_t bit_index = intid & 0x1F;
-
-    write32((paddr_t)&gicd->isenabler[reg_index], (1U << bit_index));
-    return 0;
-}
-
-int gicv3_redistributor_init(uint32_t pe_id)
+static int gicr_init(uint32_t pe_id)
 {
     (void)pe_id;
     return 0;
@@ -156,10 +115,10 @@ int gicv3_redistributor_init(uint32_t pe_id)
 
 int gicv3_init(void)
 {
-    gicv3_distributor_init();
+    gicd_init();
 
     for (uint32_t i = 0; i < NR_CPU; i++) {
-        gicv3_redistributor_init(i);
+        gicr_init(i);
     }
     return 0;
 }

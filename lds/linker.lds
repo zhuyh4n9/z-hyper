@@ -26,6 +26,14 @@ SECTIONS
         *(COMMON)
         __bss_end = .;
     }
+    . = ALIGN(0x1000);
+    .gic_context : {
+        . = ALIGN(0x1000);
+        __gic_context_start = .;
+        . += 0x10000; /* 64KB for GIC context */
+        __gic_context_end = .;
+    }
+    . = ALIGN(0x1000);
     .stack : {
         . = ALIGN(0x1000);
         __stack_start = .;

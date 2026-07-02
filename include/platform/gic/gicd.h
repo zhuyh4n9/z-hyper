@@ -15,7 +15,7 @@
  * Register Offsets
  * ======================================================================== */
 
-struct gicv3_distributor_regs {
+typedef struct gicv3_distributor_regs {
     uint32_t ctlr;
     uint32_t typer;
     uint32_t iidr;
@@ -81,70 +81,26 @@ struct gicv3_distributor_regs {
     uint32_t reserved11[0xFF4];
     // 0xFFD0 ~ 0xFFFF
     uint32_t reserved12[0xC];
+} gicv3_distributor_regs_t;
 
-};
+#define GICD_REGISTER_MAP_SIZE sizeof(gicv3_distributor_regs_t)
 
-#define GICD_REGISTER_MAP_SIZE sizeof(struct gicv3_distributor_regs);
+#define GICD_CTLR_ENABLE_GRP0_SHIFT      (0)
+#define GICD_CTLR_ENABLE_GRP1_SHIFT      (1)
+#define GICD_CTLR_ARE_SHIFT              (4)
+
+#define GICD_CTLR_DS_SHIFT               (6)
+#define GICD_CTLR_E1NWF_SHIFT            (7)
+#define GICD_CTLR_RWP_SHIFT              (31)
+
+#define GICD_CTLR_ENABLE_GRP0      (1U << GICD_CTLR_ENABLE_GRP0_SHIFT)   /* Enable Group 0 interrupts */
+#define GICD_CTLR_ENABLE_GRP1      (1U << GICD_CTLR_ENABLE_GRP1_SHIFT)   /* Enable Group 1 interrupts */
+#define GICD_CTLR_ARE              (1U << GICD_CTLR_ARE_SHIFT)   /* Affinity Routing Enable*/
+#define GICD_CTLR_DS               (1U << GICD_CTLR_DS_SHIFT)   /* Disable Security */
+#define GICD_CTLR_E1NWF            (1U << GICD_CTLR_E1NWF_SHIFT)   /* Enable 1 of N Wake-up */
+#define GICD_CTLR_RWP              (1U << GICD_CTLR_RWP_SHIFT)  /* Register Write Pending */
 
 
-#define GICD_CTLR                0x0000   /* Distributor Control Register */
-#define GICD_TYPER               0x0004   /* Interrupt Controller Type Register */
-#define GICD_IIDR                0x0008   /* Distributor Implementer Identification */
-#define GICD_STATUSR             0x0010   /* Error Reporting Status (GICv3) */
-#define GICD_SETSPI_NS           0x0040   /* Set SPI Non-secure */
-#define GICD_CLRSPI_NS           0x0048   /* Clear SPI Non-secure */
-#define GICD_SETSPI_S            0x0050   /* Set SPI Secure */
-#define GICD_CLRSPI_S            0x0058   /* Clear SPI Secure */
-#define GICD_IGROUPR(n)          (0x0080 + ((n) * 4))       /* Interrupt Group Registers, n=0..31 */
-#define GICD_ISENABLER(n)        (0x0100 + ((n) * 4))       /* Interrupt Set-Enable, n=0..31 */
-#define GICD_ICENABLER(n)        (0x0180 + ((n) * 4))       /* Interrupt Clear-Enable, n=0..31 */
-#define GICD_ISPENDR(n)          (0x0200 + ((n) * 4))       /* Interrupt Set-Pending, n=0..31 */
-#define GICD_ICPENDR(n)          (0x0280 + ((n) * 4))       /* Interrupt Clear-Pending, n=0..31 */
-#define GICD_ISACTIVER(n)        (0x0300 + ((n) * 4))       /* Interrupt Set-Active, n=0..31 */
-#define GICD_ICACTIVER(n)        (0x0380 + ((n) * 4))       /* Interrupt Clear-Active, n=0..31 */
-#define GICD_IPRIORITYR(n)       (0x0400 + ((n) * 4))       /* Interrupt Priority, n=0..255 (byte-accessible) */
-#define GICD_ITARGETSR(n)        (0x0800 + ((n) * 4))       /* Interrupt Processor Targets, n=0..255 */
-#define GICD_ICFGR(n)            (0x0C00 + ((n) * 4))       /* Interrupt Configuration, n=0..63 */
-#define GICD_IGRPMODR(n)         (0x0D00 + ((n) * 4))       /* Interrupt Group Modifier, n=0..31 */
-#define GICD_NSACR(n)            (0x0E00 + ((n) * 4))       /* Non-secure Access Control, n=0..63 */
-#define GICD_SGIR               0x0F00   /* Software Generated Interrupt Register */
-#define GICD_CPENDSGIR(n)       (0x0F10 + ((n) * 4))       /* SGI Clear-Pending, n=0..3 */
-#define GICD_SPENDSGIR(n)       (0x0F20 + ((n) * 4))       /* SGI Set-Pending, n=0..3 */
-#define GICD_PIDR2              0xFFE8   /* Peripheral ID 2 */
-#define GICD_PIDR4              0xFFD0   /* Peripheral ID 4 (GICv3: indicates 64K page) */
-
-_Static_assert(offsetof(struct gicv3_distributor_regs, statusr) == GICD_STATUSR,
-               "GICD STATUSR offset mismatch");
-_Static_assert(offsetof(struct gicv3_distributor_regs, igroupr) == GICD_IGROUPR(0),
-               "GICD IGROUPR offset mismatch");
-_Static_assert(offsetof(struct gicv3_distributor_regs, nsacr) == GICD_NSACR(0),
-               "GICD NSACR offset mismatch");
-_Static_assert(offsetof(struct gicv3_distributor_regs, sgir) == GICD_SGIR,
-               "GICD SGIR offset mismatch");
-_Static_assert(offsetof(struct gicv3_distributor_regs, cpendsgir) == GICD_CPENDSGIR(0),
-               "GICD CPENDSGIR offset mismatch");
-_Static_assert(offsetof(struct gicv3_distributor_regs, spendsgir) == GICD_SPENDSGIR(0),
-               "GICD SPENDSGIR offset mismatch");
-_Static_assert(offsetof(struct gicv3_distributor_regs, irouter) == 0x6000,
-               "GICD IROUTER offset mismatch");
-_Static_assert(sizeof(struct gicv3_distributor_regs) == 0x10000,
-               "GICD register map size mismatch");
-
-/* ========================================================================
- * GICD_CTLR bit definitions
- * ======================================================================== */
-#define GICD_CTLR_ENABLE_GRP0      (1U << 0)   /* Enable Group 0 interrupts */
-#define GICD_CTLR_ENABLE_GRP1_NS   (1U << 1)   /* Enable Non-secure Group 1 */
-#define GICD_CTLR_ENABLE_GRP1_S    (1U << 2)   /* Enable Secure Group 1 */
-#define GICD_CTLR_ARE_S            (1U << 4)   /* Affinity Routing Enable (Secure) */
-#define GICD_CTLR_ARE_NS           (1U << 5)   /* Affinity Routing Enable (Non-secure) */
-#define GICD_CTLR_DS               (1U << 6)   /* Disable Security */
-#define GICD_CTLR_E1NWF            (1U << 7)   /* Enable 1 of N Wake-up */
-#define GICD_CTLR_RWP              (1U << 31)  /* Register Write Pending */
-
-/* ========================================================================
- * GICD_TYPER bit definitions
- * ======================================================================== */
 #define GICD_TYPER_ITLINESNUMBER_SHIFT  0
 #define GICD_TYPER_ITLINESNUMBER_MASK   0x1F
 #define GICD_TYPER_CPUNUMBER_SHIFT      5
@@ -160,19 +116,16 @@ _Static_assert(sizeof(struct gicv3_distributor_regs) == 0x10000,
 #define GICD_TYPER_A3V                  (1U << 11)   /* Affinity level 3 valid (alias) */
 #define GICD_TYPER_NO1N                 (1U << 25)   /* No 1-of-N support */
 
-/* ========================================================================
- * GICD_IIDR fields
- * ======================================================================== */
 #define GICD_IIDR_IMPLEMENTER_SHIFT     0
 #define GICD_IIDR_IMPLEMENTER_MASK      0xFFF
 #define GICD_IIDR_REVISION_SHIFT        12
 #define GICD_IIDR_REVISION_MASK         0xF
+#define GICD_IIDR_VARIANT_SHIFT         16
+#define GICD_IIDR_VARIANT_MASK          0xF
 #define GICD_IIDR_PRODUCTID_SHIFT       24
 #define GICD_IIDR_PRODUCTID_MASK        0xFF
 
-/* ========================================================================
- * GICD_SGIR bit definitions
- * ======================================================================== */
+
 #define GICD_SGIR_INTID_SHIFT           0
 #define GICD_SGIR_INTID_MASK            0xF
 #define GICD_SGIR_CPUTARGETLIST_SHIFT   16
@@ -181,12 +134,110 @@ _Static_assert(sizeof(struct gicv3_distributor_regs) == 0x10000,
 #define GICD_SGIR_TARGETLISTFILTER_SHIFT 24
 #define GICD_SGIR_TARGETLISTFILTER_MASK  0x3
 
-/* ========================================================================
- * GICD_ICFGR bit definitions (2 bits per interrupt, [1:0] for INTID n)
- * ======================================================================== */
 #define GICD_ICFGR_LEVEL_SENSITIVE      0x0   /* Level-sensitive */
 #define GICD_ICFGR_EDGE_TRIGGERED       0x2   /* Edge-triggered */
 
+#define SPI_FIRST_INTID     32
+#define SPI_LAST_INTID      1019
+
+#define MAX_SPI_CONTEXTS  (SPI_LAST_INTID - SPI_FIRST_INTID + 1)
+
+typedef int (*spi_handler_t)(uint32_t intid, void *arg);
+
+// itarget is not allowed in the driver, use either 1ofN or affinity routing instead
+typedef struct spi_context {
+    uint32_t intid: 10; // Interrupt ID [32, 1019]
+    /**
+     * IGROUPR: Interrupt Group Register
+     * 0: Group 0
+     * 1: Group 1
+     */
+    uint32_t group: 1;  // all interrupts are group 1 (non-secure) in this EL2 software, so this bit is ignored
+    /**
+     * IGROUPMODR: Interrupt Group Modifier Register
+     * 0: Group 1 Non Secure
+     * 1: Group 1 Secure
+     */
+    uint32_t security: 1; // all interrupts are non-secure in this EL2 software, so this bit is ignored
+    /**
+     * IROUTER.IRM：Interrupt Routing Mode
+     *  0: for affinity
+     *  1: for 1 of N
+     */
+    uint32_t irm: 1;
+    /**
+     * ICFGR: Interrupt Configuration Register
+     *  0: level-sensitive
+     *  1: edge-triggered
+     */
+    uint32_t trigger: 1;
+    /**
+     * IPRIORITYR: Interrupt Priority Register
+     *      0x00 (highest) to 0xFF (lowest)
+     */
+    uint32_t priority: 8;
+    /**
+     * INSACR: determine how non-secure software can access the secure interrupt(G0, G1S)
+     *  00: no Non-secure access is permitted
+     *  01: allow non-secure:
+     *        1). set Pending Status for corresponding interrupt
+     *        2). set pending status via GICD_SETSPI_NSR
+     *        3). some implementations may allow non-secure to set and clear active status
+     *  10: allow non-secure to:
+     *        1). clear/set pending status for corresponding interrupt
+     *        2). set/clear pending status via GICD_SETSPI_NSR/GICD_CLIR_SPI_NSR
+     *        3). clear/set active status for corresponding interrupt
+     *  11: allow non-secure full access to control the interrupt
+     *        1). set/clear pending/active status for corresponding interrupt
+     *        2). set/clear pending status via GICD_SETSPI_NSR/GICD_CLIR_SPI_NSR
+     *        3). config Route model 
+     */
+    uint32_t nsac: 2; // ignored for this EL2 software
+    uint32_t reserved: 8; // Reserved bits
+    uint32_t affinity;
+    spi_handler_t handler;
+    void *arg;
+} spi_context_t;
+
+typedef struct gicd_context {
+    uint32_t spi_count: 10; // Number of valid SPI contexts
+    // gicd configs, Writable
+    uint32_t enable_grp0: 1; // Enable Group 0 interrupts, ignored for this EL2 software
+    uint32_t enable_grp1: 1; // Enable Group 1 interrupts, ignored for this EL2 software
+    uint32_t are: 1; // Affinity Routing Enable
+    // Read only
+    uint32_t e1nwf: 1; // Enable 1 of N Wake-up
+    uint32_t ds: 1; // Disable Security bit, ignored for this EL2 software
+    uint32_t reserved: 17; // Reserved bits
+
+    // gicd implementation info, read from typer
+    uint32_t itlinesnumber: 5; // number of spi interrupts
+    uint32_t cpunumber: 3;  // number of CPU interfaces
+    uint32_t securityextn: 1;  // whether support security extension
+    uint32_t mbis: 1;   // Message-based interrupts support
+    uint32_t lpis: 1;   // LPI supports
+    uint32_t num_lpis: 5; // Number of LPIs
+    uint32_t a3v: 1; // Affinity level 3 valid
+    uint32_t no1n: 1; // No 1-of-N support
+    uint32_t reserved2: 8; // Reserved bits
+
+    // identifier, read from iidr
+    uint32_t implementer: 12; // Implementer code
+    uint32_t revision: 4; // Revision number
+    uint32_t variant: 4; // Variant number
+    uint32_t productid: 8; // Product ID
+    uint32_t reserved3: 4; // Reserved bits
+
+    struct gicv3_distributor_regs *gicd_regs;
+    spi_context_t spi_ctxs[MAX_SPI_CONTEXTS];
+    // future extension: add SGI context, PPI context，(LPI context), etc.
+} gicd_context_t;
+
 int gicv3_init(void);
+
+spi_context_t *get_spi_context(uint32_t intid);
+int enable_spi(uint32_t intid);
+
+gicd_context_t *get_gicd_context(void);
 
 #endif /* __GICD_H__ */

@@ -3,7 +3,9 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include "layout.h"
+
 
 /*
  * GICv3 Distributor (GICD) Register Definitions
@@ -83,6 +85,34 @@ typedef struct gicv3_distributor_regs {
     uint32_t reserved12[0xC];
 } gicv3_distributor_regs_t;
 
+/* Static assertions — validate register offsets against GICv3 spec */
+_Static_assert(sizeof(gicv3_distributor_regs_t) == 0x10000,
+               "GICD struct size must be 64KB");
+_Static_assert(offsetof(gicv3_distributor_regs_t, ctlr)         == 0x0000, "GICD_CTLR offset");
+_Static_assert(offsetof(gicv3_distributor_regs_t, typer)        == 0x0004, "GICD_TYPER offset");
+_Static_assert(offsetof(gicv3_distributor_regs_t, iidr)         == 0x0008, "GICD_IIDR offset");
+_Static_assert(offsetof(gicv3_distributor_regs_t, statusr)      == 0x0010, "GICD_STATUSR offset");
+_Static_assert(offsetof(gicv3_distributor_regs_t, setspi_ns)    == 0x0040, "GICD_SETSPI_NSR offset");
+_Static_assert(offsetof(gicv3_distributor_regs_t, clrspi_ns)    == 0x0048, "GICD_CLRSPI_NSR offset");
+_Static_assert(offsetof(gicv3_distributor_regs_t, setspi_sr)    == 0x0050, "GICD_SETSPI_SR offset");
+_Static_assert(offsetof(gicv3_distributor_regs_t, clrspi_sr)    == 0x0058, "GICD_CLRSPI_SR offset");
+_Static_assert(offsetof(gicv3_distributor_regs_t, igroupr)      == 0x0080, "GICD_IGROUPR offset");
+_Static_assert(offsetof(gicv3_distributor_regs_t, isenabler)    == 0x0100, "GICD_ISENABLER offset");
+_Static_assert(offsetof(gicv3_distributor_regs_t, icenabler)    == 0x0180, "GICD_ICENABLER offset");
+_Static_assert(offsetof(gicv3_distributor_regs_t, ispendr)      == 0x0200, "GICD_ISPENDR offset");
+_Static_assert(offsetof(gicv3_distributor_regs_t, icpendr)      == 0x0280, "GICD_ICPENDR offset");
+_Static_assert(offsetof(gicv3_distributor_regs_t, isactiver)    == 0x0300, "GICD_ISACTIVER offset");
+_Static_assert(offsetof(gicv3_distributor_regs_t, icactiver)    == 0x0380, "GICD_ICACTIVER offset");
+_Static_assert(offsetof(gicv3_distributor_regs_t, ipriorityr)   == 0x0400, "GICD_IPRIORITYR offset");
+_Static_assert(offsetof(gicv3_distributor_regs_t, itargetsr)    == 0x0800, "GICD_ITARGETSR offset");
+_Static_assert(offsetof(gicv3_distributor_regs_t, icfgr)        == 0x0C00, "GICD_ICFGR offset");
+_Static_assert(offsetof(gicv3_distributor_regs_t, igrpmodr)     == 0x0D00, "GICD_IGRPMODR offset");
+_Static_assert(offsetof(gicv3_distributor_regs_t, nsacr)        == 0x0E00, "GICD_NSACR offset");
+_Static_assert(offsetof(gicv3_distributor_regs_t, sgir)         == 0x0F00, "GICD_SGIR offset");
+_Static_assert(offsetof(gicv3_distributor_regs_t, cpendsgir)    == 0x0F10, "GICD_CPENDSGIR offset");
+_Static_assert(offsetof(gicv3_distributor_regs_t, spendsgir)    == 0x0F20, "GICD_SPENDSGIR offset");
+_Static_assert(offsetof(gicv3_distributor_regs_t, irouter)      == 0x6000, "GICD_IROUTER offset");
+
 #define GICD_REGISTER_MAP_SIZE sizeof(gicv3_distributor_regs_t)
 
 #define GICD_CTLR_ENABLE_GRP0_SHIFT      (0)
@@ -136,6 +166,14 @@ typedef struct gicv3_distributor_regs {
 
 #define GICD_ICFGR_LEVEL_SENSITIVE      0x0   /* Level-sensitive */
 #define GICD_ICFGR_EDGE_TRIGGERED       0x2   /* Edge-triggered */
+
+#define GICD_IROUTER_IRM_SHIFT           31
+#define GICD_IROUTER_AFF0_SHIFT          0
+#define GICD_IROUTER_AFF1_SHIFT          8
+#define GICD_IROUTER_AFF2_SHIFT          16
+#define GICD_IROUTER_AFF3_SHIFT          32
+
+#define GICD_IROUTER_AFF_MASK            0xFF
 
 #define SPI_FIRST_INTID     32
 #define SPI_LAST_INTID      1019
@@ -199,45 +237,34 @@ typedef struct spi_context {
     void *arg;
 } spi_context_t;
 
-typedef struct gicd_context {
-    uint32_t spi_count: 10; // Number of valid SPI contexts
-    // gicd configs, Writable
-    uint32_t enable_grp0: 1; // Enable Group 0 interrupts, ignored for this EL2 software
-    uint32_t enable_grp1: 1; // Enable Group 1 interrupts, ignored for this EL2 software
-    uint32_t are: 1; // Affinity Routing Enable
-    // Read only
-    uint32_t e1nwf: 1; // Enable 1 of N Wake-up
-    uint32_t ds: 1; // Disable Security bit, ignored for this EL2 software
-    uint32_t reserved: 17; // Reserved bits
+typedef struct gicd_context gicd_context_t;
 
-    // gicd implementation info, read from typer
-    uint32_t itlinesnumber: 5; // number of spi interrupts
-    uint32_t cpunumber: 3;  // number of CPU interfaces
-    uint32_t securityextn: 1;  // whether support security extension
-    uint32_t mbis: 1;   // Message-based interrupts support
-    uint32_t lpis: 1;   // LPI supports
-    uint32_t num_lpis: 5; // Number of LPIs
-    uint32_t a3v: 1; // Affinity level 3 valid
-    uint32_t no1n: 1; // No 1-of-N support
-    uint32_t reserved2: 8; // Reserved bits
+// match the spec
 
-    // identifier, read from iidr
-    uint32_t implementer: 12; // Implementer code
-    uint32_t revision: 4; // Revision number
-    uint32_t variant: 4; // Variant number
-    uint32_t productid: 8; // Product ID
-    uint32_t reserved3: 4; // Reserved bits
+#define GICD_STATUS_READ_RES_BIT  0
+#define GICD_STATUS_WRITE_RES_BIT 1
+#define GICD_STATUS_READ_WO_BIT   2
+#define GICD_STATUS_WRITE_RO_BIT  3
+#define GICD_STATUS_MAX_CNT       4
 
-    struct gicv3_distributor_regs *gicd_regs;
-    spi_context_t spi_ctxs[MAX_SPI_CONTEXTS];
-    // future extension: add SGI context, PPI context，(LPI context), etc.
-} gicd_context_t;
+enum GICD_STATUS {
+    GICD_STATUS_READ_RES  = (1U << GICD_STATUS_READ_RES_BIT),
+    GICD_STATUS_WRITE_RES = (1U << GICD_STATUS_WRITE_RES_BIT),
+    GICD_STATUS_READ_WO   = (1U << GICD_STATUS_READ_WO_BIT),
+    GICD_STATUS_WRITE_RO  = (1U << GICD_STATUS_WRITE_RO_BIT),
+    GICD_STATUS_MASK      = (1U << (GICD_STATUS_MAX_CNT)) - 1,
+};
+
+uint32_t gicd_status(void);
+uint32_t gicd_reset_status(uint32_t status);
 
 int gicv3_init(void);
 
 spi_context_t *get_spi_context(uint32_t intid);
-int enable_spi(uint32_t intid);
-
 gicd_context_t *get_gicd_context(void);
+int gicd_enable_spi(uint32_t intid);
+
+#define CHECK_SPI_INTID(intid) \
+        if ((intid) < SPI_FIRST_INTID || (intid) > SPI_LAST_INTID)
 
 #endif /* __GICD_H__ */

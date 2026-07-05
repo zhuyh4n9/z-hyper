@@ -53,8 +53,8 @@ int platform_init() {
     test_rand();
     miniheap_reliability_stress_test();
     gicv3_init();
-    panic("Test panic function");
-
+    
+    printf("waiting for interrupts...\n");
     while (1) {
         asm volatile ("wfi");
     }

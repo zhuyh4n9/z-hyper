@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
-#include "platform/debug.h"
+#include "debug.h"
 #include "pl011/pl011.h"
 
 #define va_list         __builtin_va_list

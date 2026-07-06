@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include "gic/gicv3.h"
 #include "layout.h"
 
 struct gicv3_redistributor_regs {
@@ -56,7 +57,7 @@ struct gicv3_redistributor_sgi_regs {
     // 0x0 ~ 0x80
     uint32_t reserved0[32];
     // 0x80 ~ 0x100
-    uint32_t igroup0;
+    uint32_t igroupr0;
     uint32_t reserved1[31];
     // 0x100 ~ 0x180
     uint32_t isenabler0;
@@ -95,7 +96,7 @@ struct gicv3_redistributor_sgi_regs {
 
 /* Static assertions — validate SGI register offsets against GICv3 spec */
 _Static_assert(sizeof(struct gicv3_redistributor_sgi_regs) == 0x10000, "GICR SGI struct size must be 64KB");
-_Static_assert(offsetof(struct gicv3_redistributor_sgi_regs, igroup0)    == 0x0080, "GICR_IGROUPR0 offset");
+_Static_assert(offsetof(struct gicv3_redistributor_sgi_regs, igroupr0)    == 0x0080, "GICR_IGROUPR0 offset");
 _Static_assert(offsetof(struct gicv3_redistributor_sgi_regs, isenabler0) == 0x0100, "GICR_ISENABLER0 offset");
 _Static_assert(offsetof(struct gicv3_redistributor_sgi_regs, icenabler0) == 0x0180, "GICR_ICENABLER0 offset");
 _Static_assert(offsetof(struct gicv3_redistributor_sgi_regs, ispendr0)   == 0x0200, "GICR_ISPENDR0 offset");
@@ -159,14 +160,5 @@ _Static_assert(offsetof(struct gicv3_redistributor_sgi_regs, gicr_nsacr) == 0x0E
 
 #define GICR_SYNCR_COMPLETE              (1U << 0)      /* Operation complete */
 
-typedef struct gicd_context gicd_context_t;
-typedef struct gicr_context gicr_context_t;
-
-int gicr_get(gicd_context_t *gicd_ctx,uint32_t cpu_id);
-
-int gicr_init(gicr_context_t *gicr_ctx);
-
-bool gicr_uwp(gicr_context_t *gicr_ctx);
-bool gicr_rwp(gicr_context_t *gicr_ctx);
 
 #endif

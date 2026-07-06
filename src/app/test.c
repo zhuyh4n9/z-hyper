@@ -1,6 +1,6 @@
 #include "pl011/pl011.h"
-#include "platform/aarch64_utils.h"
-#include "platform/debug.h"
+#include "aarch64_utils.h"
+#include "debug.h"
 #include "utils/miniheap.h"
 #include "layout.h"
 #include <stdio.h>

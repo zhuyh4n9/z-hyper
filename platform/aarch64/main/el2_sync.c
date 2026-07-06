@@ -1,6 +1,6 @@
-#include "platform/aarch64_utils.h"
+#include "aarch64_utils.h"
 #include <stdio.h>
-#include "platform/debug.h"
+#include "debug.h"
 #include "utils/utils.h"
 
 void dump_esr(uint64_t esr)

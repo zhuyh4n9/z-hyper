@@ -1,6 +1,6 @@
 #include "utils/miniheap.h"
-#include "platform/aarch64_utils.h"
-#include "platform/debug.h"
+#include "aarch64_utils.h"
+#include "debug.h"
 
 #define MINIHEAP_MAGIC_FREE 0xDEADBEEF
 #define MINIHEAP_MAGIC_USED 0xBEEFDEAD

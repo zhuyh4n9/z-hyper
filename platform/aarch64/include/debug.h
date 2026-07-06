@@ -2,7 +2,7 @@
 #define __DEBUG_UTILS_H__
 
 #include <stdio.h>
-#include "platform/aarch64_utils.h"
+#include "aarch64_utils.h"
 
 void dump_esr(uint64_t esr);
 

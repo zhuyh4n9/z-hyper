@@ -2,7 +2,7 @@
 #define __ICC_H__
 
 #include <stdint.h>
-#include "platform/aarch64_utils.h"
+#include "aarch64_utils.h"
 
 /*
  * GICv3 CPU Interface Registers (System Register access via MRS/MSR)

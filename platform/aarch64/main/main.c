@@ -1,9 +1,9 @@
 #include "pl011/pl011.h"
-#include "platform/aarch64_utils.h"
-#include "platform/debug.h"
+#include "aarch64_utils.h"
+#include "debug.h"
 #include "utils/miniheap.h"
 #include "layout.h"
-#include "platform/gic/gicd.h"
+#include "gic/gicv3.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -53,10 +53,9 @@ int platform_init() {
     test_rand();
     miniheap_reliability_stress_test();
     gicv3_init();
-    
+
     printf("waiting for interrupts...\n");
-    while (1) {
-        asm volatile ("wfi");
-    }
+    
+    hang();
     return 0;
 }

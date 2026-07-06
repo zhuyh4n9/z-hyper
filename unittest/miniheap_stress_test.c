@@ -1,6 +1,6 @@
 #include "utils/miniheap.h"
-#include "platform/aarch64_utils.h"
-#include "platform/debug.h"
+#include "aarch64_utils.h"
+#include "debug.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>

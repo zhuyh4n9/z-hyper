@@ -31,8 +31,8 @@ void vcpu_save_context(struct vcpu *vcpu, const aarch64_gpregs_t *gpregs)
 
 void vcpu_restore_context(struct vcpu *vcpu, aarch64_gpregs_t *gpregs)
 {
-    memcpy(gpregs, &vcpu->gpregs, sizeof(aarch64_gpregs_t));
-
+    // restore lrs
+    vcpu->state = VCPU_STATE_RUNNING;
     write_sysreg(elr_el1, vcpu->sysregs_el1.elr_el1);
     write_sysreg(spsr_el1, vcpu->sysregs_el1.spsr_el1);
     write_sysreg(mpidr_el1, vcpu->sysregs_el1.mpidr_el1);
@@ -44,8 +44,8 @@ void vcpu_restore_context(struct vcpu *vcpu, aarch64_gpregs_t *gpregs)
     write_sysreg(tcr_el1, vcpu->sysregs_el1.tcr_el1);
     write_sysreg(vbar_el1, vcpu->sysregs_el1.vbar_el1);
     write_sysreg(sctlr_el1, vcpu->sysregs_el1.sctlr_el1);
-    // restore lrs
-    vcpu->state = VCPU_STATE_RUNNING;
+
+    memcpy(gpregs, &vcpu->gpregs, sizeof(aarch64_gpregs_t));
 }
 
 void vcpu_start(struct vcpu *vcpu)
@@ -102,7 +102,6 @@ void pcpu_switch(pcpu_t *pcpu, aarch64_gpregs_t *gpregs)
     }
 
     if (!list_next(&pcpu->ready_vcpus)) {
-        // no ready vcpu, idle
         pcpu->current_vcpu = NULL;
         return;
     }

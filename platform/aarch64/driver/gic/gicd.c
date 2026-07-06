@@ -2,51 +2,32 @@
 #include "utils/zprint.h"
 #include "utils/types.h"
 #include "utils/errno.h"
-#include "platform/aarch64_utils.h"
-#include "platform/gic/gicd.h"
-#include "platform/gic/gicr.h"
-#include "platform/debug.h"
+#include "aarch64_utils.h"
+#include "gic/gicv3.h"
+#include "debug.h"
 #include <stdint.h>
 #include <stdbool.h>
+
+#define GICV3_INTERNAL
+#include "include/gicv3_internal.h"
+#undef GICV3_INTERNAL
 
 extern uint8_t __gic_context_start;
 extern uint8_t __gic_context_end;
 
 #define GIC_CONTEXT_SIZE         (&__gic_context_end - &__gic_context_start)
 
-struct gicd_context {
-    uint32_t spi_count: 10; // Number of valid SPI contexts
-    // gicd configs, Writable
-    uint32_t enable_grp0: 1; // Enable Group 0 interrupts, ignored for this EL2 software
-    uint32_t enable_grp1: 1; // Enable Group 1 interrupts, ignored for this EL2 software
-    uint32_t are: 1; // Affinity Routing Enable
-    // Read only
-    uint32_t e1nwf: 1; // Enable 1 of N Wake-up
-    uint32_t ds: 1; // Disable Security bit, ignored for this EL2 software
-    uint32_t reserved: 17; // Reserved bits
+static inline void wait_rwp(void)
+{
+    gicd_context_t *gicd_ctx = get_gicd_context();
+    if (gicd_ctx == NULL || gicd_ctx->gicd_regs == NULL) {
+        panic("Failed to get GICD context\n");
+    }
 
-    // gicd implementation info, read from typer
-    uint32_t itlinesnumber: 5; // number of spi interrupts
-    uint32_t cpunumber: 3;  // number of CPU interfaces
-    uint32_t securityextn: 1;  // whether support security extension
-    uint32_t mbis: 1;   // Message-based interrupts support
-    uint32_t lpis: 1;   // LPI supports
-    uint32_t num_lpis: 5; // Number of LPIs
-    uint32_t a3v: 1; // Affinity level 3 valid
-    uint32_t no1n: 1; // No 1-of-N support
-    uint32_t reserved2: 8; // Reserved bits
-
-    // identifier, read from iidr
-    uint32_t implementer: 12; // Implementer code
-    uint32_t revision: 4; // Revision number
-    uint32_t variant: 4; // Variant number
-    uint32_t productid: 8; // Product ID
-    uint32_t reserved3: 4; // Reserved bits
-
-    struct gicv3_distributor_regs *gicd_regs;
-    spi_context_t spi_ctxs[MAX_SPI_CONTEXTS];
-    // future extension: add SGI context, PPI context，(LPI context), etc.
-};
+    while (gicd_rwp(gicd_ctx)) {
+        ;
+    }
+}
 
 gicd_context_t *get_gicd_context(void)
 {
@@ -70,7 +51,35 @@ void gicv3_show_distributor(gicd_context_t *gicd_ctx)
     printf("GICD: e1nwf=%u\n", gicd_ctx->e1nwf);
 }
 
-static int gicv3_distributor_init(void)
+uint32_t gicd_status(void)
+{
+    uint32_t status = 0;
+    gicd_context_t *gicd_ctx = get_gicd_context();
+    if (gicd_ctx == NULL || gicd_ctx->gicd_regs == NULL) {
+        panic("Failed to get GICD context\n");
+    }
+
+    status = read32((paddr_t)&gicd_ctx->gicd_regs->statusr);
+
+    return status;
+}
+
+uint32_t gicd_reset_status(uint32_t status)
+{
+    gicd_context_t *gicd_ctx = get_gicd_context();
+    if (gicd_ctx == NULL || gicd_ctx->gicd_regs == NULL) {
+        panic("Failed to get GICD context\n");
+    }
+
+    write32((paddr_t)&gicd_ctx->gicd_regs->statusr, status & GICD_STATUS_MASK);
+
+    return 0;
+}
+
+
+/**  gic internal functions */
+
+int gicd_init(void)
 {
     uint32_t typer = 0;
     gicd_context_t *gicd_ctx = NULL;
@@ -110,25 +119,12 @@ static int gicv3_distributor_init(void)
     gicd_ctx->reserved = 0; // Reserved bits
 
     printf("GICv3 Distributor init: 0x%lx\n", (uint64_t)&gicd->ctlr);
-    write32((paddr_t)&gicd->ctlr, 0x0);
-
-    for (uint32_t i = 0; i < gicd_ctx->itlinesnumber; i++) {
-        write32((paddr_t)&gicd->igroupr[i + 1], 0xFFFFFFFF); // all interrupts are group 1 (non-secure)
-        write32((paddr_t)&gicd->icenabler[i + 1], 0xFFFFFFFF); // disable all interrupts
-        write32((paddr_t)&gicd->icpendr[i + 1], 0xFFFFFFFF); // clear all pending interrupts
-        write32((paddr_t)&gicd->icactiver[i + 1], 0xFFFFFFFF); // clear all active interrupts
-    }
-
-    //clear sgi pending
-    for (uint32_t i = 0; i < 4; i++) {
-        write32((paddr_t)&gicd->cpendsgir[i], 0xFFFFFFFF);
-    }
 
     ctrl = (gicd_ctx->enable_grp0 << GICD_CTLR_ENABLE_GRP0_SHIFT)
         | (gicd_ctx->enable_grp1 << GICD_CTLR_ENABLE_GRP1_SHIFT)
         | (gicd_ctx->are << GICD_CTLR_ARE_SHIFT);
-
     write32((paddr_t)&gicd->ctlr, ctrl);
+    wait_rwp();
 
     ctrl = read32((paddr_t)&gicd->ctlr); // ensure the write is completed
 
@@ -139,72 +135,23 @@ static int gicv3_distributor_init(void)
     gicd_ctx->are = (ctrl & GICD_CTLR_ARE) ? 1 : 0;
     gicd_ctx->e1nwf = (ctrl & GICD_CTLR_E1NWF) ? 1 : 0;
 
+    for (uint32_t i = 0; i < gicd_ctx->itlinesnumber; i++) {
+        write32((paddr_t)&gicd->icpendr[i + 1], 0xFFFFFFFF); // clear all pending interrupts
+        write32((paddr_t)&gicd->icactiver[i + 1], 0xFFFFFFFF); // clear all active interrupts
+
+        write32((paddr_t)&gicd->icenabler[i + 1], 0xFFFFFFFF); // disable all interrupts
+        // must wait for RWP bit to clear before writing to ICENABLER
+        wait_rwp();
+    }
+
     printf("gicd init done!\n");
     gicv3_show_distributor(gicd_ctx);
+
     return 0;    
 }
 
-static int gicv3_redistributor_init(uint32_t pe_id)
-{
-    (void)pe_id;
-    return 0;
-}
 
-int gicv3_init(void)
-{
-    gicv3_distributor_init();
-
-    for (uint32_t i = 0; i < NR_CPU; i++) {
-        gicv3_redistributor_init(i);
-    }
-    return 0;
-}
-
-spi_context_t *get_spi_context(uint32_t intid)
-{
-    gicd_context_t *gicd_ctx = get_gicd_context();
-    spi_context_t *spi_ctx = NULL;
-
-    if (gicd_ctx == NULL) {
-        panic("Failed to get GICD context\n");
-    }
-
-    CHECK_SPI_INTID(intid) {
-        return NULL;
-    }
-    
-    spi_ctx = &gicd_ctx->spi_ctxs[intid - SPI_FIRST_INTID];
-
-    return spi_ctx;
-}
-
-uint32_t gicd_status(void)
-{
-    uint32_t status = 0;
-    gicd_context_t *gicd_ctx = get_gicd_context();
-    if (gicd_ctx == NULL || gicd_ctx->gicd_regs == NULL) {
-        panic("Failed to get GICD context\n");
-    }
-
-    status = read32((paddr_t)&gicd_ctx->gicd_regs->statusr);
-
-    return status;
-}
-
-uint32_t gicd_reset_status(uint32_t status)
-{
-    gicd_context_t *gicd_ctx = get_gicd_context();
-    if (gicd_ctx == NULL || gicd_ctx->gicd_regs == NULL) {
-        panic("Failed to get GICD context\n");
-    }
-
-    write32((paddr_t)&gicd_ctx->gicd_regs->statusr, status & GICD_STATUS_MASK);
-
-    return 0;
-}
-
-
-static int __gicd_set_clear_spi(uint32_t intid, bool set)
+int __gicd_set_clear_spi(uint32_t intid, bool set)
 {
     gicd_context_t *gicd_ctx = get_gicd_context();
     uint32_t reg_offset = 0;
@@ -224,12 +171,13 @@ static int __gicd_set_clear_spi(uint32_t intid, bool set)
         write32((paddr_t)&gicd_ctx->gicd_regs->isenabler[reg_offset], (1U << bit_offset));
     } else {
         write32((paddr_t)&gicd_ctx->gicd_regs->icenabler[reg_offset], (1U << bit_offset));
+        wait_rwp();
     }
 
     return 0;
 }
 
-static int __gicd_spi_set_trigger(uint32_t intid, bool is_edge)
+int __gicd_spi_set_trigger(uint32_t intid, bool is_edge)
 {
     gicd_context_t *gicd_ctx = get_gicd_context();
     uint32_t reg_offset = 0;
@@ -255,7 +203,7 @@ static int __gicd_spi_set_trigger(uint32_t intid, bool is_edge)
     return 0;
 }
 
-static int __gicd_spi_config_router(uint32_t intid, bool irm, uint32_t affinity)
+int __gicd_spi_config_router(uint32_t intid, bool irm, uint32_t affinity)
 {
     gicd_context_t *gicd_ctx = get_gicd_context();
     uint32_t route_value = 0;
@@ -289,7 +237,7 @@ static int __gicd_spi_config_router(uint32_t intid, bool irm, uint32_t affinity)
     return 0;
 }
 
-static int __gicd_spi_set_priority(uint32_t intid, uint8_t priority)
+int __gicd_spi_set_priority(uint32_t intid, uint8_t priority)
 {
     gicd_context_t *gicd_ctx = get_gicd_context();
     uint32_t reg_offset = 0;
@@ -315,37 +263,106 @@ static int __gicd_spi_set_priority(uint32_t intid, uint8_t priority)
     return 0;
 }
 
-int gicd_enable_spi(uint32_t intid)
+int __gicd_spi_set_security(uint32_t intid, bool group, bool secure)
 {
-    spi_context_t *spi = get_spi_context(intid);
     gicd_context_t *gicd_ctx = get_gicd_context();
-    int ret = 0;
+    uint32_t reg_offset = 0;
+    uint32_t bit_offset = 0;
+    uint32_t value = 0;
 
-    if (!gicd_ctx) {
+    if (!gicd_ctx || !gicd_ctx->gicd_regs) {
         panic("Failed to get GICD context\n");
     }
-    if (!spi) {
-        return -ENOENT;
+    CHECK_SPI_INTID(intid) {
+        return -EINVAL;
     }
 
-    ret = __gicd_set_clear_spi(intid, false);
-    if (ret < 0) {
-        return ret;
+    if (group) {
+        reg_offset = intid >> 5; // each IGROUPR register configures 32 interrupts
+        bit_offset = intid & 0x1F; // each interrupt has 1 bit in IGROUPR
+
+        value = read32((paddr_t)&gicd_ctx->gicd_regs->igroupr[reg_offset]);
+        if (secure) {
+            value &= ~(1U << bit_offset); // clear the bit for this interrupt
+        } else {
+            value |= (1U << bit_offset); // set the bit for this interrupt
+        }
+        write32((paddr_t)&gicd_ctx->gicd_regs->igroupr[reg_offset], value);
+    } else {
+        reg_offset = intid >> 5; // each IGRPMODR register configures 32 interrupts
+        bit_offset = intid & 0x1F; // each interrupt has 1 bit in IGRPMODR
+
+        value = read32((paddr_t)&gicd_ctx->gicd_regs->igrpmodr[reg_offset]);
+        if (secure) {
+            value &= ~(1U << bit_offset); // clear the bit for this interrupt
+        } else {
+            value |= (1U << bit_offset); // set the bit for this interrupt
+        }
+        write32((paddr_t)&gicd_ctx->gicd_regs->igrpmodr[reg_offset], value);
     }
 
-    ret = __gicd_spi_set_priority(intid, spi->priority);
-    if (ret < 0) {
-        return ret;
+    return 0;
+}
+
+static int __gicd_set_spi(intr_context_t *ctx)
+{
+    if (!ctx) {
+        panic("Invalid context for setting SPI\n");
     }
 
-    ret = __gicd_spi_config_router(intid, spi->irm, spi->affinity);
-    if (ret < 0) {
-        return ret;
-    }
-    ret = __gicd_spi_set_trigger(intid, spi->trigger);
-    if (ret < 0) {
-        return ret;
+    return __gicd_set_clear_spi(ctx->intid, true);
+}
+
+static int __gicd_clear_spi(intr_context_t *ctx)
+{
+    if (!ctx) {
+        panic("Invalid context for clearing SPI\n");
     }
 
-    return __gicd_set_clear_spi(intid, true);
+    return __gicd_set_clear_spi(ctx->intid, false);
+}
+
+static int __gicd_set_spi_priority(intr_context_t *ctx, uint8_t priority)
+{
+    if (!ctx) {
+        panic("Invalid context for setting SPI priority\n");
+    }
+
+    return __gicd_spi_set_priority(ctx->intid, priority);
+}
+
+static int __gicd_set_spi_trigger(intr_context_t *ctx, bool is_edge)
+{
+    if (!ctx) {
+        panic("Invalid context for setting SPI trigger\n");
+    }
+
+    return __gicd_spi_set_trigger(ctx->intid, is_edge);
+}
+
+static int __gicd_set_spi_group(intr_context_t *ctx, uint8_t group)
+{
+    if (!ctx) {
+        panic("Invalid context for setting SPI group\n");
+    }
+
+    return __gicd_spi_set_security(ctx->intid, group, false);
+}
+
+gic_intr_operations_t g_spi_intr_ops = {
+    .set_intr = __gicd_set_spi,
+    .clear_intr = __gicd_clear_spi,
+    .set_priority = __gicd_set_spi_priority,
+    .set_trigger = __gicd_set_spi_trigger,
+    .set_group = __gicd_set_spi_group,
+};
+
+bool gicd_rwp(gicd_context_t *gicd_ctx)
+{
+    if (!gicd_ctx || !gicd_ctx->gicd_regs) {
+        panic("Failed to get GICD context\n");
+    }
+
+    uint32_t status = read32((paddr_t)&gicd_ctx->gicd_regs->statusr);
+    return (status & GICD_CTLR_RWP) != 0;
 }

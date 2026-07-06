@@ -11,24 +11,29 @@ set(CMAKE_LINKER 		"${CROSS_COMPILE}ld")
 set(CMAKE_ASM_FLAGS 	"-march=armv8-a+nosimd+nofp")
 
 include_directories(${CMAKE_SOURCE_DIR}/include
-                    ${CMAKE_SOURCE_DIR}/include/libc)
+                    ${CMAKE_SOURCE_DIR}/include/libc
+                    ${CMAKE_SOURCE_DIR}/platform/aarch64/include
+                    ${CMAKE_SOURCE_DIR}/platform/aarch64/include/driver
+                    ${CMAKE_SOURCE_DIR}/platform/aarch64/driver/gic/include)
 set(CMAKE_ASM_FLAGS "-ffreestanding -Wextra -Wfatal-errors -Werror -O0 -D__ASSEMBLY__")
 set(BUILD_FLAGS "-Wall -Wextra -Werror -O0 -g -nostdlib -ffreestanding -mstrict-align")
 set(CMAKE_C_FLAGS "${BUILD_FLAGS} -DNR_CPU=${NR_CPU}")
 
 
 add_executable(z-hyper.elf
-    src/main/start.S
-    src/main/el2_sync.c
-    src/main/exception.S
-    src/main/main.c
+    platform/aarch64/main/start.S
+    platform/aarch64/main/el2_sync.c
+    platform/aarch64/main/exception.S
+    platform/aarch64/main/main.c
     unittest/miniheap_stress_test.c
     src/libc/string.c
     src/libc/printf.c
     src/libc/rand.c
     src/libc/miniheap.c
-    src/driver/pl011/pl011.c
-    src/driver/gic/gicv3.c
+    platform/aarch64/driver/pl011/pl011.c
+    platform/aarch64/driver/gic/gicv3.c
+    platform/aarch64/driver/gic/gicr.c
+    platform/aarch64/driver/gic/gicd.c
 )
 
 target_link_options(z-hyper.elf PRIVATE

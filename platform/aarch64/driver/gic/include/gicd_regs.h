@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "layout.h"
+#include "gic/gicv3.h"
 
 
 /*
@@ -175,70 +176,6 @@ _Static_assert(offsetof(gicv3_distributor_regs_t, irouter)      == 0x6000, "GICD
 
 #define GICD_IROUTER_AFF_MASK            0xFF
 
-#define SPI_FIRST_INTID     32
-#define SPI_LAST_INTID      1019
-
-#define MAX_SPI_CONTEXTS  (SPI_LAST_INTID - SPI_FIRST_INTID + 1)
-
-typedef int (*spi_handler_t)(uint32_t intid, void *arg);
-
-// itarget is not allowed in the driver, use either 1ofN or affinity routing instead
-typedef struct spi_context {
-    uint32_t intid: 10; // Interrupt ID [32, 1019]
-    /**
-     * IGROUPR: Interrupt Group Register
-     * 0: Group 0
-     * 1: Group 1
-     */
-    uint32_t group: 1;  // all interrupts are group 1 (non-secure) in this EL2 software, so this bit is ignored
-    /**
-     * IGROUPMODR: Interrupt Group Modifier Register
-     * 0: Group 1 Non Secure
-     * 1: Group 1 Secure
-     */
-    uint32_t security: 1; // all interrupts are non-secure in this EL2 software, so this bit is ignored
-    /**
-     * IROUTER.IRM：Interrupt Routing Mode
-     *  0: for affinity
-     *  1: for 1 of N
-     */
-    uint32_t irm: 1;
-    /**
-     * ICFGR: Interrupt Configuration Register
-     *  0: level-sensitive
-     *  1: edge-triggered
-     */
-    uint32_t trigger: 1;
-    /**
-     * IPRIORITYR: Interrupt Priority Register
-     *      0x00 (highest) to 0xFF (lowest)
-     */
-    uint32_t priority: 8;
-    /**
-     * INSACR: determine how non-secure software can access the secure interrupt(G0, G1S)
-     *  00: no Non-secure access is permitted
-     *  01: allow non-secure:
-     *        1). set Pending Status for corresponding interrupt
-     *        2). set pending status via GICD_SETSPI_NSR
-     *        3). some implementations may allow non-secure to set and clear active status
-     *  10: allow non-secure to:
-     *        1). clear/set pending status for corresponding interrupt
-     *        2). set/clear pending status via GICD_SETSPI_NSR/GICD_CLIR_SPI_NSR
-     *        3). clear/set active status for corresponding interrupt
-     *  11: allow non-secure full access to control the interrupt
-     *        1). set/clear pending/active status for corresponding interrupt
-     *        2). set/clear pending status via GICD_SETSPI_NSR/GICD_CLIR_SPI_NSR
-     *        3). config Route model 
-     */
-    uint32_t nsac: 2; // ignored for this EL2 software
-    uint32_t reserved: 8; // Reserved bits
-    uint32_t affinity;
-    spi_handler_t handler;
-    void *arg;
-} spi_context_t;
-
-typedef struct gicd_context gicd_context_t;
-
 // match the spec
 
 #define GICD_STATUS_READ_RES_BIT  0
@@ -254,17 +191,5 @@ enum GICD_STATUS {
     GICD_STATUS_WRITE_RO  = (1U << GICD_STATUS_WRITE_RO_BIT),
     GICD_STATUS_MASK      = (1U << (GICD_STATUS_MAX_CNT)) - 1,
 };
-
-uint32_t gicd_status(void);
-uint32_t gicd_reset_status(uint32_t status);
-
-int gicv3_init(void);
-
-spi_context_t *get_spi_context(uint32_t intid);
-gicd_context_t *get_gicd_context(void);
-int gicd_enable_spi(uint32_t intid);
-
-#define CHECK_SPI_INTID(intid) \
-        if ((intid) < SPI_FIRST_INTID || (intid) > SPI_LAST_INTID)
 
 #endif /* __GICD_H__ */

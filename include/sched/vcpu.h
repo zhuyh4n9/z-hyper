@@ -2,7 +2,7 @@
 #define __VCPU_H__
 
 #include "list/list.h"
-#include "platform/aarch64_utils.h"
+#include "aarch64_utils.h"
 
 enum vcpu_state {
     VCPU_STATE_OFFLINE,
@@ -67,5 +67,32 @@ void pcpu_switch(pcpu_t *pcpu, aarch64_gpregs_t *gpregs);
 
 void vcpu_save_context(struct vcpu *vcpu, const aarch64_gpregs_t *gpregs);
 void vcpu_restore_context(struct vcpu *vcpu, aarch64_gpregs_t *gpregs);
+
+#define SAVE_CPU_CONTEXT(gpregs) \
+    asm volatile ( \
+        "stp x0, x1, [%0, #16 * 0]\n\t" \
+        "stp x2, x3, [%0, #16 * 1]\n\t" \
+        "stp x4, x5, [%0, #16 * 2]\n\t" \
+        "stp x6, x7, [%0, #16 * 3]\n\t" \
+        "stp x8, x9, [%0, #16 * 4]\n\t" \
+        "stp x10, x11, [%0, #16 * 5]\n\t" \
+        "stp x12, x13, [%0, #16 * 6]\n\t" \
+        "stp x14, x15, [%0, #16 * 7]\n\t" \
+        "stp x16, x17, [%0, #16 * 8]\n\t" \
+        "stp x18, x19, [%0, #16 * 9]\n\t" \
+        "stp x20, x21, [%0, #16 * 10]\n\t" \
+        "stp x22, x23, [%0, #16 * 11]\n\t" \
+        "stp x24, x25, [%0, #16 * 12]\n\t" \
+        "stp x26, x27, [%0, #16 * 13]\n\t" \
+        "stp x28, x29, [%0, #16 * 14]\n\t" \
+        "str sp , [%0,#496] \n\t"\
+        "mrs x1, SPSR_EL2\n\t"\
+        "str x1, [%0,#512] \n\t"\
+        "adr x1, 1f\n\t"\
+        "str x1, [%0,#504] \n\t"\
+        "1:\n\t"\
+        : : "r"(gpregs) : "memory");
+
+static inline void restore_cpu_context(aarch64_gpregs_t *gpregs);
 
 #endif

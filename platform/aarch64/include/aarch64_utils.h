@@ -168,4 +168,11 @@ static inline uint32_t read32(paddr_t addr)
     asm volatile ("msr DAIFSet, #2"); \
 } while (0)
 
+static inline uint32_t cpu_id(void)
+{
+    uint64_t mpidr;
+    asm volatile ("mrs %0, MPIDR_EL1" : "=r" (mpidr));
+    return (uint32_t)(mpidr & 0xFF);
+}
+
 #endif

@@ -95,99 +95,30 @@ typedef struct intr_context spi_context_t;
 typedef struct intr_context sgi_context_t;
 typedef struct intr_context ppi_context_t;
 
-struct gicr_context {
-    uint32_t cpu_id;
-    // ctrl info
-    uint32_t enable_lpi: 1;  // ignored
-    uint32_t dpg0: 1; // ignored
-    uint32_t dpg1s: 1;  // ignored
-    uint32_t dpg1ns: 1; // ignored
-    uint32_t reserved: 28;
+struct gicd_context;
 
-    // identifier, read from iidr
-    uint32_t implementer: 12; // Implementer code
-    uint32_t revision: 4; // Revision number
-    uint32_t variant: 4; // Variant number
-    uint32_t productid: 8; // Product ID
-    uint32_t reserved3: 4; // Reserved bits
-    
-    // type info
-    uint64_t plpis: 1;
-    uint64_t vlpis: 1;
-    uint64_t direct_lpis: 1;
-    uint64_t last: 1;
-    uint64_t dpgs: 1;
-    uint64_t processor_number: 16;
-    uint64_t common_lpi_aff: 2;
-    uint64_t affinity: 32;
-    uint64_t reserved2: 9; // Reserved bits
-
-    struct gicv3_redistributor_regs *gicr_regs;
-    struct gicv3_redistributor_sgi_regs *gicr_sgi_regs;
-    sgi_context_t sgi_ctxs[16];
-    ppi_context_t ppi_ctxs[16];
-};
-
-struct gicd_context {
-    uint32_t spi_count: 10; // Number of valid SPI contexts
-    // gicd configs, Writable
-    uint32_t enable_grp0: 1; // Enable Group 0 interrupts, ignored for this EL2 software
-    uint32_t enable_grp1: 1; // Enable Group 1 interrupts, ignored for this EL2 software
-    uint32_t are: 1; // Affinity Routing Enable
-    // Read only
-    uint32_t e1nwf: 1; // Enable 1 of N Wake-up
-    uint32_t ds: 1; // Disable Security bit, ignored for this EL2 software
-    uint32_t reserved: 17; // Reserved bits
-
-    // gicd implementation info, read from typer
-    uint32_t itlinesnumber: 5; // number of spi interrupts
-    uint32_t cpunumber: 3;  // number of CPU interfaces
-    uint32_t securityextn: 1;  // whether support security extension
-    uint32_t mbis: 1;   // Message-based interrupts support
-    uint32_t lpis: 1;   // LPI supports
-    uint32_t num_lpis: 5; // Number of LPIs
-    uint32_t a3v: 1; // Affinity level 3 valid
-    uint32_t no1n: 1; // No 1-of-N support
-    uint32_t reserved2: 8; // Reserved bits
-
-    // identifier, read from iidr
-    uint32_t implementer: 12; // Implementer code
-    uint32_t revision: 4; // Revision number
-    uint32_t variant: 4; // Variant number
-    uint32_t productid: 8; // Product ID
-    uint32_t reserved3: 4; // Reserved bits
-
-    struct gicv3_distributor_regs *gicd_regs;
-    struct gicr_context gicr_ctxs[MAX_SUPPORTED_CPUS];
-    spi_context_t spi_ctxs[MAX_SPI_CONTEXTS];
-    // future extension: add SGI context, PPI context，(LPI context), etc.
-};
+typedef struct gicd_context gicd_context_t;
 
 uint32_t gicd_status(void);
 uint32_t gicd_reset_status(uint32_t status);
 
 spi_context_t *get_spi_context(uint32_t intid);
-gicd_context_t *get_gicd_context(void);
+
 int gicd_enable_spi(uint32_t intid);
 
 #define CHECK_SPI_INTID(intid) \
         if ((intid) < SPI_FIRST_INTID || (intid) > SPI_LAST_INTID)
 
 int gicv3_init(void);
+int gicv3_percpu_init(void);
 
-gicd_context_t *gicr_get(uint32_t cpu_id);
+int intr_enable(intr_context_t *intr);
 
 #define CHECK_SGI_INTID(intid) \
         if ((intid) > SGI_LAST_INTID)
 
 #define CHECK_PPI_INTID(intid) \
         if ((intid) < PPI_FIRST_INTID || (intid) > PPI_LAST_INTID)
-
-ppi_context_t *get_ppi_context(gicr_context_t *gicr_ctx, uint32_t intid);
-sgi_context_t *get_sgi_context(gicr_context_t *gicr_ctx, uint32_t intid);
-
-int gicr_sgi_enable(gicr_context_t *gicr_ctx, uint32_t intid);
-int gicr_ppi_enable(gicr_context_t *gicr_ctx, uint32_t intid);
 
 static inline bool intr_fiq(intr_context_t *ctx)
 {

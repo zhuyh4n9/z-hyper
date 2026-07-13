@@ -156,6 +156,16 @@ static inline uint32_t read32(paddr_t addr)
     return *(volatile uint32_t *)addr;
 }
 
+static inline void write64(paddr_t addr, uint64_t value)
+{
+    *(volatile uint64_t *)addr = value;
+}
+
+static inline uint64_t read64(paddr_t addr)
+{
+    return *(volatile uint64_t *)addr;
+}
+
 #define write_sysreg(reg, val) do { \
     asm volatile ("msr " #reg ", %0" : : "r" (val)); \
 } while (0)

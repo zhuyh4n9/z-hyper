@@ -14,7 +14,7 @@ include_directories(${CMAKE_SOURCE_DIR}/include
                     ${CMAKE_SOURCE_DIR}/include/libc
                     ${CMAKE_SOURCE_DIR}/platform/aarch64/include
                     ${CMAKE_SOURCE_DIR}/platform/aarch64/include/driver
-                    ${CMAKE_SOURCE_DIR}/platform/aarch64/driver/gic/include)
+                    ${CMAKE_SOURCE_DIR}/platform/aarch64/driver/gic/common/)
 set(CMAKE_ASM_FLAGS "-ffreestanding -Wextra -Wfatal-errors -Werror -O0 -D__ASSEMBLY__")
 set(BUILD_FLAGS "-Wall -Wextra -Werror -O0 -g -nostdlib -ffreestanding -mstrict-align")
 set(CMAKE_C_FLAGS "${BUILD_FLAGS} -DNR_CPU=${NR_CPU}")
@@ -31,9 +31,12 @@ add_executable(z-hyper.elf
     src/libc/rand.c
     src/libc/miniheap.c
     platform/aarch64/driver/pl011/pl011.c
-    platform/aarch64/driver/gic/gicv3.c
-    platform/aarch64/driver/gic/gicr.c
-    platform/aarch64/driver/gic/gicd.c
+    platform/aarch64/driver/gic/common/gicv3.c
+    platform/aarch64/driver/gic/common/gicr.c
+    platform/aarch64/driver/gic/common/gicd.c
+    platform/aarch64/driver/gic/common/intr/spi.c
+    platform/aarch64/driver/gic/common/intr/ppi.c
+    platform/aarch64/driver/gic/common/intr/sgi.c
 )
 
 target_link_options(z-hyper.elf PRIVATE

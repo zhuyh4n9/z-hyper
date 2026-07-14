@@ -57,7 +57,7 @@ int platform_init() {
     gicv3_percpu_init();
 
     printf("waiting for interrupts...\n");
-    
+
     hang();
     return 0;
 }

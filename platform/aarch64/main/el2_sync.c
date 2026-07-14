@@ -104,3 +104,20 @@ void aarch64_backtrace(struct aarch64_gpregs *regs, int max_frames)
         frame_ptr = (uint64_t *)(*frame_ptr); // Next frame pointer is stored at FP
     }
 }
+
+
+int el2_irq(struct aarch64_gpregs *regs)
+{
+    printf("EL2 IRQ Exception occurred! \n");
+    dump_registers(regs);
+    hang();
+    return 0;
+}
+
+int el2_fiq(struct aarch64_gpregs *regs)
+{
+    printf("EL2 FIQ Exception occurred! \n");
+    dump_registers(regs);
+    hang();
+    return 0;
+}

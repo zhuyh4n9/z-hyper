@@ -11,6 +11,7 @@
 #include "gic/gicv3.h"
 #include "gicr_regs.h"
 #include "gicd_regs.h"
+#include "gicc.h"
 
 struct gicr_implementer_ops {
     const char *(*get_name)(void);

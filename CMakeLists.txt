@@ -30,6 +30,7 @@ add_executable(z-hyper.elf
     src/libc/printf.c
     src/libc/rand.c
     src/libc/miniheap.c
+    platform/aarch64/timer/timer.c
     platform/aarch64/driver/pl011/pl011.c
     platform/aarch64/driver/gic/common/gicv3.c
     platform/aarch64/driver/gic/common/gicr.c

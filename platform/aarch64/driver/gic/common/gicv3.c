@@ -30,6 +30,7 @@ int gicv3_percpu_init(void)
 {
     gicr_context_t *gicr_ctx = __get_this_gicr();
     int ret = 0;
+    uint32_t ctlr = 0;
 
     if (gicr_ctx == NULL) {
         panic("Failed to get GICR context\n");
@@ -40,13 +41,28 @@ int gicv3_percpu_init(void)
         return ret;
     }
 
-    // config cpu interface
-    write_sysreg(ICC_PMR_EL1, 0xFF);
-    // no preempt
-    write_sysreg(ICC_BPR1_EL1, 0x7);
+    // no preemption for group 0/1
     write_sysreg(ICC_BPR0_EL1, 0x7);
-    // enable group1 interrupts
+
+    // EOImode = 0, common BPR = 0, PMHE = 0
+    ctlr = read_sysreg(ICC_CTLR_EL1);
+    ctlr &= ~((1U << EOI_MODE) |
+              (1U << COMMON_BPR) |
+              (1U << PRIORITY_MASK_HINT_ENABLE));
+    write_sysreg(ICC_CTLR_EL1, ctlr);
+    /**
+     * use system register for icc
+     * disable bypass for fiq/irq
+     * enable low access level
+     * enable system register access
+     */
+    write_sysreg(ICC_SRE_EL2, (1U << SYSTEM_REGISTER_ENABLE) |
+                              (1U << DISABLE_FIQ_BYPASS) |
+                              (1U << DISABLE_IRQ_BYPASS) |
+                              (1U << LOW_ACCESS_LEVEL_ENABLE));
+    // enable group 0 and group 1 interrupts
     write_sysreg(ICC_IGRPEN1_EL1, 0x1);
+    write_sysreg(ICC_IGRPEN0_EL1, 0x1);
 
     return 0;
 }
@@ -79,3 +95,4 @@ int intr_enable(intr_context_t *intr)
 
     return intr->ops->set_intr(intr);
 }
+

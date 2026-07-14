@@ -26,9 +26,9 @@ hyper_vector:
 .org vector_base + 0x200
     b el2_sync_handler
 .org vector_base + 0x280
-    b .
+    b el2_irq_handler
 .org vector_base + 0x300
-    b .
+    b el2_fiq_handler
 .org vector_base + 0x380
     b .
 
@@ -109,5 +109,17 @@ el2_exception_init:
 el2_sync_handler:
     intr_save_regs
     b el2_sync
+    intr_restore_regs
+    eret
+
+el2_irq_handler:
+    intr_save_regs
+    b el2_irq
+    intr_restore_regs
+    eret
+
+el2_fiq_handler:
+    intr_save_regs
+    b el2_fiq
     intr_restore_regs
     eret

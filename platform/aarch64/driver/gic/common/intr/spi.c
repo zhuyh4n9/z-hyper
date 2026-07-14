@@ -166,7 +166,7 @@ int __gicd_spi_set_security(uint32_t intid, bool group, bool secure)
     return 0;
 }
 
-static int __gicd_set_spi(intr_context_t *ctx)
+static int __gicd_set_spi(irq_context_t *ctx)
 {
     if (!ctx) {
         panic("Invalid context for setting SPI\n");
@@ -175,7 +175,7 @@ static int __gicd_set_spi(intr_context_t *ctx)
     return __gicd_set_clear_spi(ctx->intid, true);
 }
 
-static int __gicd_clear_spi(intr_context_t *ctx)
+static int __gicd_clear_spi(irq_context_t *ctx)
 {
     if (!ctx) {
         panic("Invalid context for clearing SPI\n");
@@ -184,7 +184,7 @@ static int __gicd_clear_spi(intr_context_t *ctx)
     return __gicd_set_clear_spi(ctx->intid, false);
 }
 
-static int __gicd_set_spi_priority(intr_context_t *ctx, uint8_t priority)
+static int __gicd_set_spi_priority(irq_context_t *ctx, uint8_t priority)
 {
     if (!ctx) {
         panic("Invalid context for setting SPI priority\n");
@@ -193,7 +193,7 @@ static int __gicd_set_spi_priority(intr_context_t *ctx, uint8_t priority)
     return __gicd_spi_set_priority(ctx->intid, priority);
 }
 
-static int __gicd_set_spi_trigger(intr_context_t *ctx, bool is_edge)
+static int __gicd_set_spi_trigger(irq_context_t *ctx, bool is_edge)
 {
     if (!ctx) {
         panic("Invalid context for setting SPI trigger\n");
@@ -202,7 +202,7 @@ static int __gicd_set_spi_trigger(intr_context_t *ctx, bool is_edge)
     return __gicd_spi_set_trigger(ctx->intid, is_edge);
 }
 
-static int __gicd_set_spi_group(intr_context_t *ctx, uint8_t group)
+static int __gicd_set_spi_group(irq_context_t *ctx, uint8_t group)
 {
     if (!ctx) {
         panic("Invalid context for setting SPI group\n");

@@ -14,11 +14,11 @@ hyper_vector:
 
 // current EL vectors with SP_EL0
 .org vector_base + 0x000
-    b .
+    b el2_sync_handler
 .org vector_base + 0x080
-    b .
+    b el2_irq_handler
 .org vector_base + 0x100
-    b .
+    b el2_fiq_handler
 .org vector_base + 0x180
     b .
 
@@ -35,17 +35,18 @@ hyper_vector:
 // current EL vectors with SP_EL1
 
 .org vector_base + 0x400
-    b .
+    b el2_sync_handler
 .org vector_base + 0x480
-    b .
+    b el2_irq_handler
 .org vector_base + 0x500
-    b .
+    b el2_fiq_handler
 .org vector_base + 0x580
     b .
 
 el2_exception_init:
     ldr x0, =hyper_vector
     msr VBAR_EL2, x0
+    isb
     ret
 
 .macro intr_save_regs
@@ -108,18 +109,18 @@ el2_exception_init:
 
 el2_sync_handler:
     intr_save_regs
-    b el2_sync
+    bl el2_sync
     intr_restore_regs
     eret
 
 el2_irq_handler:
     intr_save_regs
-    b el2_irq
+    bl el2_irq
     intr_restore_regs
     eret
 
 el2_fiq_handler:
     intr_save_regs
-    b el2_fiq
+    bl el2_fiq
     intr_restore_regs
     eret

@@ -20,20 +20,20 @@
 
 typedef struct gicd_context gicd_context_t;
 typedef struct gicr_context gicr_context_t;
-typedef struct intr_context intr_context_t;
+typedef struct irq_context irq_context_t;
 
 typedef struct gic_intr_operations {
-    int (*set_intr)(intr_context_t *ctx);
-    int (*clear_intr)(intr_context_t *ctx);
-    int (*set_priority)(intr_context_t *ctx, uint8_t priority);
-    int (*set_trigger)(intr_context_t *ctx, bool is_edge);
-    int (*set_group)(intr_context_t *ctx, uint8_t group);
+    int (*set_intr)(irq_context_t *ctx);
+    int (*clear_intr)(irq_context_t *ctx);
+    int (*set_priority)(irq_context_t *ctx, uint8_t priority);
+    int (*set_trigger)(irq_context_t *ctx, bool is_edge);
+    int (*set_group)(irq_context_t *ctx, uint8_t group);
 } gic_intr_operations_t;
 
 typedef int (*intr_handler_t)(uint32_t intid, void *arg);
 
 // itarget is not allowed in the driver, use either 1ofN or affinity routing instead
-struct intr_context {
+struct irq_context {
     uint32_t intid: 10; // Interrupt ID [32, 1019]
     /**
      * IGROUPR: Interrupt Group Register
@@ -91,10 +91,10 @@ struct intr_context {
     gic_intr_operations_t *ops;
 };
 
-typedef struct intr_context spi_context_t;
-typedef struct intr_context sgi_context_t;
-typedef struct intr_context ppi_context_t;
-
+typedef struct irq_context spi_context_t;
+typedef struct irq_context sgi_context_t;
+typedef struct irq_context ppi_context_t;
+typedef struct irq_context irq_context_t;
 struct gicd_context;
 
 typedef struct gicd_context gicd_context_t;
@@ -103,6 +103,8 @@ uint32_t gicd_status(void);
 uint32_t gicd_reset_status(uint32_t status);
 
 spi_context_t *get_spi_context(uint32_t intid);
+ppi_context_t *get_ppi_context(uint32_t intid);
+sgi_context_t *get_sgi_context(uint32_t intid);
 
 int gicd_enable_spi(uint32_t intid);
 
@@ -112,7 +114,7 @@ int gicd_enable_spi(uint32_t intid);
 int gicv3_init(void);
 int gicv3_percpu_init(void);
 
-int intr_enable(intr_context_t *intr);
+int gic_irq_enable(irq_context_t *intr);
 
 #define CHECK_SGI_INTID(intid) \
         if ((intid) > SGI_LAST_INTID)
@@ -120,9 +122,11 @@ int intr_enable(intr_context_t *intr);
 #define CHECK_PPI_INTID(intid) \
         if ((intid) < PPI_FIRST_INTID || (intid) > PPI_LAST_INTID)
 
-static inline bool intr_fiq(intr_context_t *ctx)
+static inline bool intr_fiq(irq_context_t *ctx)
 {
     return (ctx->group == 0);
 }
+
+#define PPI_TIMER_INTID_EL2     26
 
 #endif

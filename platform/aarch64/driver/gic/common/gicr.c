@@ -24,6 +24,7 @@ void gicr_wait_rwp(void)
 int gicr_init(gicr_context_t *gicr_ctx, uint32_t cpu_id)
 {
     uint64_t typer = 0;
+    uint32_t waker = 0;
 
     gicr_ctx->gicr_regs = (struct gicv3_redistributor_regs *)(GICR_BASE + GICR_STRIDE * cpu_id);
     gicr_ctx->gicr_sgi_regs = (struct gicv3_redistributor_sgi_regs *)(GICR_BASE + GICR_STRIDE * cpu_id + 0x10000);
@@ -50,6 +51,15 @@ int gicr_init(gicr_context_t *gicr_ctx, uint32_t cpu_id)
     gicr_ctx->dpg0 = 0;
     gicr_ctx->dpg1s = 0;
     gicr_ctx->dpg1ns = 0;
+
+    waker = read32((paddr_t)&gicr_ctx->gicr_regs->waker);
+    if (waker & GICR_WAKER_PROCESSORSLEEP) {
+        waker &= ~GICR_WAKER_PROCESSORSLEEP;
+        write32((paddr_t)&gicr_ctx->gicr_regs->waker, waker);
+        while (read32((paddr_t)&gicr_ctx->gicr_regs->waker) & GICR_WAKER_CHILDRENASLEEP) {
+            ;
+        }
+    }
 
     write32((paddr_t)&gicr_ctx->gicr_regs->ctlr, 0x0);
     gicr_wait_rwp();

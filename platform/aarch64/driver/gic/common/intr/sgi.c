@@ -10,7 +10,7 @@
 #undef GICV3_INTERNAL
 
 
-static int __gicr_sgi_set_trigger(intr_context_t *ctx, bool is_edge)
+static int __gicr_sgi_set_trigger(irq_context_t *ctx, bool is_edge)
 {
     gicr_context_t *gicr_ctx = NULL;
     uint32_t reg_offset = 0;
@@ -66,7 +66,7 @@ static int __gicr_set_clear_sgi(uint32_t intid, bool set)
 }
 
 
-static int __gicr_set_sgi(intr_context_t *ctx)
+static int __gicr_set_sgi(irq_context_t *ctx)
 {
     if (!ctx) {
         panic("Invalid context for setting SGI\n");
@@ -78,7 +78,7 @@ static int __gicr_set_sgi(intr_context_t *ctx)
     return __gicr_set_clear_sgi(ctx->intid, true);
 }
 
-static int __gicr_clear_sgi(intr_context_t *ctx)
+static int __gicr_clear_sgi(irq_context_t *ctx)
 {
     if (!ctx) {
         panic("Invalid context for clearing SGI\n");
@@ -89,7 +89,7 @@ static int __gicr_clear_sgi(intr_context_t *ctx)
     return __gicr_set_clear_sgi(ctx->intid, false);
 }
 
-int __gicr_sgi_set_priority(intr_context_t *ctx, uint8_t priority)
+int __gicr_sgi_set_priority(irq_context_t *ctx, uint8_t priority)
 {
     gicr_context_t *gicr_ctx = NULL;
     uint32_t reg_offset = 0;
@@ -117,7 +117,7 @@ int __gicr_sgi_set_priority(intr_context_t *ctx, uint8_t priority)
     return 0;
 }
 
-static int __gicr_sgi_set_group(intr_context_t *ctx, uint8_t group)
+static int __gicr_sgi_set_group(irq_context_t *ctx, uint8_t group)
 {
     gicr_context_t *gicr_ctx = NULL;
     uint32_t bit_offset = 0;

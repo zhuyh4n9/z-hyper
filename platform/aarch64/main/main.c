@@ -12,7 +12,6 @@
 void miniheap_reliability_stress_test(void);
 extern void el2_exception_init(void);
 
-#define HCR_EL2_IMO   (1UL << 4)
 
 void test_memset(void)
 {
@@ -41,15 +40,6 @@ void test_rand()
 }
 
 extern uint64_t __heap_start;
-
-int enable_el2_irq(void)
-{
-    uint64_t hcr_el2 = read_sysreg(HCR_EL2);
-    hcr_el2 |= HCR_EL2_IMO; // Enable IRQ routing to EL2
-    write_sysreg(HCR_EL2, hcr_el2);
-    asm volatile ("isb");
-    return 0;
-}
 
 int platform_init() {
     pl011_init(0x09000000);

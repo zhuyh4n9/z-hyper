@@ -185,4 +185,17 @@ static inline uint32_t cpu_id(void)
     return (uint32_t)(mpidr & 0xFF);
 }
 
+#define HCR_EL2_IMO   (1UL << 4)
+#define HCR_EL2_FMO   (1UL << 5)
+
+static inline int enable_el2_irq(void)
+{
+    uint64_t hcr_el2 = read_sysreg(HCR_EL2);
+    hcr_el2 |= HCR_EL2_IMO | HCR_EL2_FMO; // Enable IRQ routing to EL2
+    write_sysreg(HCR_EL2, hcr_el2);
+    asm volatile ("isb");
+    return 0;
+}
+
+
 #endif

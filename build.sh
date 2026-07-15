@@ -5,6 +5,8 @@ image_name=z-hyper.elf
 
 NR_CPU=1
 HZ=250
+TRACE_ON=1
+
 if [ -d "./build" ]; then
     rm -rf ./build
 fi
@@ -12,5 +14,5 @@ fi
 mkdir -p build
 cd build
 
-cmake .. -DNR_CPU=${NR_CPU} -DHZ=${HZ} -DCMAKE_BUILD_TYPE=Debug
+cmake .. -DNR_CPU=${NR_CPU} -DHZ=${HZ} -DTRACE_ON=${TRACE_ON} -DCMAKE_BUILD_TYPE=Debug
 make

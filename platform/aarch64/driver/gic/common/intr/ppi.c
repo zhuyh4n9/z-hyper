@@ -156,7 +156,6 @@ ppi_context_t *get_ppi_context(uint32_t intid)
     CHECK_PPI_INTID(intid) {
         return NULL;
     }
-    printf("trace: get_ppi_context: intid=%u\n", intid);
 
     ppi = &gicr_ctx->ppi_ctxs[intid - PPI_FIRST_INTID];
     if (ppi->intid != intid || ppi->ops != &g_ppi_intr_ops) {

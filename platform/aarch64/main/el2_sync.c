@@ -1,5 +1,6 @@
 #include "aarch64_utils.h"
 #include <stdio.h>
+#include <stdarg.h>
 #include "debug.h"
 #include "utils/utils.h"
 #include "gic/gicv3.h"
@@ -53,12 +54,18 @@ void dump_registers(struct aarch64_gpregs *regs)
     aarch64_backtrace(regs, 10);
 }
 
-void panic(const char *msg)
+void panic(const char *fmt, ...)
 {
-    if (msg)
-        printf("-------------- PANIC: %s --------------\n", msg);
-    else
-        printf("-------------- PANIC --------------\n", msg);
+    va_list args;
+    va_start(args, fmt);
+    if (fmt) {
+        printf("-------------- PANIC: ");
+        vprintf(fmt, args);
+        printf(" --------------\n");
+    } else {
+        printf("-------------- PANIC --------------\n");
+    }
+    va_end(args);
     asm volatile("mov x0, #1\n\t"
         "ldr x1, [x0]"); // dereference un-aligned address to cause exception
     printf("Unreachable code after panic\n");

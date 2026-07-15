@@ -7,7 +7,7 @@
 void dump_esr(uint64_t esr);
 
 int el2_sync(struct aarch64_gpregs *regs);
-void panic(const char *msg);
+void panic(const char *fmt, ...);
 void aarch64_backtrace(struct aarch64_gpregs *regs, int max_frames);
 
 #endif

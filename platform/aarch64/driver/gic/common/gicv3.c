@@ -99,3 +99,17 @@ int gic_irq_enable(irq_context_t *intr)
     return intr->ops->set_intr(intr);
 }
 
+irq_context_t *get_irq_context(uint32_t intid)
+{
+    if (intid <= SGI_LAST_INTID) {
+        return get_sgi_context(intid);
+    } else if (intid <= PPI_LAST_INTID) {
+        return get_ppi_context(intid);
+    } else if (intid <= SPI_LAST_INTID) {
+        return get_spi_context(intid);
+    }
+
+    printf("Invalid intid: %u\n", intid);
+
+    return NULL;
+}

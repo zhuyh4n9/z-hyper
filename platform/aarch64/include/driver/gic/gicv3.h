@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "layout.h"
+#include "aarch64_utils.h"
 
 #define SGI_FIRST_INTID     0
 #define SGI_LAST_INTID      15
@@ -30,7 +31,7 @@ typedef struct gic_intr_operations {
     int (*set_group)(irq_context_t *ctx, uint8_t group);
 } gic_intr_operations_t;
 
-typedef int (*intr_handler_t)(uint32_t intid, void *arg);
+typedef int (*irq_handler_t)(struct irq_context *irq, struct aarch64_gpregs *regs);
 
 // itarget is not allowed in the driver, use either 1ofN or affinity routing instead
 struct irq_context {
@@ -86,7 +87,7 @@ struct irq_context {
         uint32_t affinity;      //spi
         uint32_t cpu_id;        //sgi/ppi
     };
-    intr_handler_t handler;
+    irq_handler_t handle;
     void *arg;
     gic_intr_operations_t *ops;
 };
@@ -114,7 +115,7 @@ int gicd_enable_spi(uint32_t intid);
 int gicv3_init(void);
 int gicv3_percpu_init(void);
 
-int gic_irq_enable(irq_context_t *intr);
+int gic_irq_enable(irq_context_t *irq);
 
 #define CHECK_SGI_INTID(intid) \
         if ((intid) > SGI_LAST_INTID)
@@ -126,6 +127,8 @@ static inline bool intr_fiq(irq_context_t *ctx)
 {
     return (ctx->group == 0);
 }
+
+irq_context_t *get_irq_context(uint32_t intid);
 
 #define PPI_TIMER_INTID_EL2     26
 

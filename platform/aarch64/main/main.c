@@ -56,7 +56,7 @@ int platform_init() {
 
     test_rand();
     miniheap_reliability_stress_test();
-    // fixme
+
     gicv3_init();
     gicv3_percpu_init();
 

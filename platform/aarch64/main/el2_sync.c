@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include "debug.h"
 #include "utils/utils.h"
+#include "gic/gicv3.h"
 
 void dump_esr(uint64_t esr)
 {
@@ -108,9 +109,20 @@ void aarch64_backtrace(struct aarch64_gpregs *regs, int max_frames)
 
 int el2_irq(struct aarch64_gpregs *regs)
 {
-    printf("EL2 IRQ Exception occurred! \n");
-    dump_registers(regs);
-    hang();
+    uint32_t intid = 0;
+    irq_context_t *irq = NULL;
+
+    intid = read_sysreg(ICC_IAR1_EL1);
+    
+    irq = get_irq_context(intid);
+    if (irq && irq->handle) {
+        irq->handle(irq, regs);
+    } else {
+        printf("Unhandled EL2 IRQ Exception! intid: %d\n", intid);
+        panic(NULL);
+    }
+
+    write_sysreg(ICC_EOIR1_EL1, intid);
     return 0;
 }
 

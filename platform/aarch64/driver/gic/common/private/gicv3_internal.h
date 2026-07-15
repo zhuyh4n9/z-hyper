@@ -98,8 +98,8 @@ struct gicd_context {
     // future extension: add SGI context, PPI context，(LPI context), etc.
 };
 
-extern uint8_t __gic_context_start;
-extern uint8_t __gic_context_end;
+extern uint8_t __gic_context_start[];
+extern uint8_t __gic_context_end[];
 
 static inline gicd_context_t *__get_gicd(void)
 {
@@ -134,6 +134,6 @@ int gicr_init(gicr_context_t *gicr_ctx, uint32_t cpu_id);
 bool gicr_rwp(gicr_context_t *gicr_ctx);
 bool gicr_uwp(gicr_context_t *gicr_ctx);
 
-#define GIC_CONTEXT_SIZE         (&__gic_context_end - &__gic_context_start)
+#define GIC_CONTEXT_SIZE         (__gic_context_end - __gic_context_start)
 
 #endif

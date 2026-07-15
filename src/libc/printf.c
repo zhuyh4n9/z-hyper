@@ -183,6 +183,17 @@ int printf(const char *fmt, ...)
     return 0;
 }
 
+int __printf_chk(int flag, const char *fmt, ...)
+{
+    va_list ap;
+
+    (void)flag;
+    va_start(ap, fmt);
+    vprintf(fmt, ap);
+    va_end(ap);
+    return 0;
+}
+
 int fflush(FILE *stream)
 {
     (void)stream;

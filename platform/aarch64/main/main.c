@@ -58,7 +58,7 @@ int platform_init() {
     irq_enable();
 
     miniheap_init(&g_miniheap, (void *)&__heap_start, ZHYPER_HEAP_SIZE);
-    
+
     gicv3_init();
     gicv3_percpu_init();
     percpu_timer_init(1000/HZ);

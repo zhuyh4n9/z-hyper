@@ -60,9 +60,13 @@ int platform_init() {
     gicv3_init();
     gicv3_percpu_init();
 
-    percpu_timer_init(1000); // 1 second interval
+    percpu_timer_init(1000);
+
     printf("waiting for interrupts...\n");
-    hang();
+    while (1) {
+        wfi();
+        printf("wfi\n");
+    }
 
     return 0;
 }

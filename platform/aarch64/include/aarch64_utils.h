@@ -114,6 +114,11 @@ static inline void hang(void)
     }
 }
 
+static inline void wfi(void)
+{
+    asm volatile ("wfi");
+}
+
 static inline uint32_t pstate(void)
 {
     uint64_t state;

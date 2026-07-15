@@ -17,7 +17,7 @@ include_directories(${CMAKE_SOURCE_DIR}/include
                     ${CMAKE_SOURCE_DIR}/platform/aarch64/driver/gic/common/)
 set(CMAKE_ASM_FLAGS "-ffreestanding -Wextra -Wfatal-errors -Werror -O0 -D__ASSEMBLY__")
 set(BUILD_FLAGS "-Wall -Wextra -Werror -O0 -g -nostdlib -ffreestanding -mstrict-align")
-set(CMAKE_C_FLAGS "${BUILD_FLAGS} -DNR_CPU=${NR_CPU}")
+set(CMAKE_C_FLAGS "${BUILD_FLAGS} -DNR_CPU=${NR_CPU} -DHZ=${HZ}")
 
 
 add_executable(z-hyper.elf

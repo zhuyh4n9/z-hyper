@@ -28,28 +28,21 @@ static int gicv3_init(void)
     return 0;
 }
 
-static atomic_t s_gicd_init_counter = {0};
-static atomic_t s_gicd_init_done = {0};
-
-int gicv3_percpu_init(void)
+int plat_gicv3_init(void)
 {
-
-    if (atomic_inc_return(&s_gicd_init_counter) == 1) {
-        gicv3_init();
-        atomic_set(&s_gicd_init_done, 1);
-        smp_wmb();
-    }
-
-    smp_rmb();
-    // waiting for gicd_init to complete
-    while (atomic_read(&s_gicd_init_done) == 0) {
-        ;
-    }
-
-    gicr_context_t *gicr_ctx = __get_this_gicr();
-    int ret = 0;
+    static once_flag_t gicd_init_once = ONCE_INITIALIZER;
+    gicr_context_t *gicr_ctx = NULL;
     uint32_t ctlr = 0;
     uint64_t sre = 0;
+    int ret = 0;
+
+    ret = run_once(&gicd_init_once, gicv3_init);
+
+    if (ret < 0) {
+        panic("GICD initialization failed\n");
+    }
+
+    gicr_ctx = __get_this_gicr();
 
     if (gicr_ctx == NULL) {
         panic("Failed to get GICR context\n");
@@ -91,29 +84,24 @@ int gic_irq_enable(irq_context_t *intr)
         return -ENOENT;
     }
 
-    printf("trace: clear intr: %u\n", intr->intid);
     // set to 0 ns
     ret = intr->ops->clear_intr(intr);
     if (ret < 0) {
         return ret;
     }
-    printf("trace: set priority: %u\n", intr->priority);
     ret = intr->ops->set_priority(intr, (uint8_t)intr->priority);
     if (ret < 0) {
         return ret;
     }
-    printf("trace: set group: %u\n", intr->group);
     ret = intr->ops->set_group(intr, (uint8_t)intr->group);
     if (ret < 0) {
         return ret;
     }
-    printf("trace: set trigger: %u\n", intr->trigger);
     ret = intr->ops->set_trigger(intr, intr->trigger);
     if (ret < 0) {
         return ret;
     }
 
-    printf("trace: enable intr: %u\n", intr->intid);
     return intr->ops->set_intr(intr);
 }
 

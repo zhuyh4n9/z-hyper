@@ -38,7 +38,7 @@ int console_putc_all(int c);
 int console_flush_all(void);
 
 #define CONSOLE_REGISTER(_name, _id, _ops) \
-    static const console_t __console_##_name __attribute__((used, section(".console"))) = { \
+    static const console_t __console_##_name __attribute__((used, section(".data.console"))) = { \
         .id = _id, \
         .name = #_name, \
         .enabled = 0, \

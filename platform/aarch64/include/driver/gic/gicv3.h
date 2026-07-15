@@ -112,7 +112,7 @@ int gicd_enable_spi(uint32_t intid);
 #define CHECK_SPI_INTID(intid) \
         if ((intid) < SPI_FIRST_INTID || (intid) > SPI_LAST_INTID)
 
-int gicv3_percpu_init(void);
+int plat_gicv3_init(void);
 
 int gic_irq_enable(irq_context_t *irq);
 

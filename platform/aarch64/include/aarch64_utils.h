@@ -198,4 +198,6 @@ static inline int irq_disable(void)
     return 0;
 }
 
+extern void el2_exception_init(void);
+
 #endif

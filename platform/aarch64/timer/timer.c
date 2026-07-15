@@ -82,7 +82,7 @@ percpu_timer_manager_t *get_percpu_timer_manager(void)
     return &s_timer_manager[id];
 }
 
-void percpu_timer_init(uint32_t interval_ms)
+void plat_timer_init(uint32_t interval_ms)
 {
     ppi_context_t *timer_ppi = NULL;
     uint64_t cntfrq_el0 = read_sysreg(CNTFRQ_EL0);
@@ -107,7 +107,6 @@ void percpu_timer_init(uint32_t interval_ms)
     timer_ppi->trigger = 1;
     timer_ppi->handle = timer_irq_handler;
     timer_ppi->arg = manager;
-    printf("Setting up PPI context for timer interrupt (INTID: %u)\n", PPI_TIMER_INTID_EL2);
 
     gic_irq_enable((irq_context_t *)timer_ppi);
 

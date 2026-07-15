@@ -4,7 +4,7 @@
 #include "list/list.h"
 #include "aarch64_utils.h"
 
-void percpu_timer_init(uint32_t interval_ms);
+void plat_timer_init(uint32_t interval_ms);
 
 typedef struct percpu_timer_manager percpu_timer_manager_t;
 typedef struct zhyper_timer zhyper_timer_t;

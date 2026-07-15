@@ -10,6 +10,7 @@ PHDRS
 {
     text PT_LOAD FLAGS(5); /* R_X */
     data PT_LOAD FLAGS(6); /* RW_ */
+    rodata PT_LOAD FLAGS(4); /* R_ */
 }
 
 SECTIONS
@@ -20,18 +21,17 @@ SECTIONS
     .text : {
         *(.text) *(.text.*)
     } :text
+    . = ALIGN(0x1000);
     .rodata : {
         *(.rodata) *(.rodata.*)
-    } :text
-    .console : {
-        __start___console = .;
-        *(.console) *(.console.*)
-        __stop___console = .;
-    } :text
+    } :rodata
+    . = ALIGN(0x1000);
     .data : {
+        __start___console = .;
+        *(.data.console) *(.data.console.*)
+        __stop___console = .;
         *(.data) *(.data.*)
     } :data
-    . = ALIGN(0x1000);
     .bss : {
         __bss_start = .;
         *(.bss) *(.bss.*)
@@ -40,14 +40,12 @@ SECTIONS
     } :data
     . = ALIGN(0x1000);
     .gic_context : {
-        . = ALIGN(0x1000);
         __gic_context_start = .;
         . += 0x10000; /* 64KB for GIC context */
         __gic_context_end = .;
     } :data
     . = ALIGN(0x1000);
     .stack : {
-        . = ALIGN(0x1000);
         __stack_start = .;
         . += 0x8000; /* 16KB stack */
         __stack_end = .;

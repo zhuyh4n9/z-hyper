@@ -8,37 +8,8 @@
 #include <utils/miniheap.h>
 #include <layout.h>
 #include <gic/gicv3.h>
+#include <utils/utils.h>
 #include <utils/console.h>
-
-void miniheap_reliability_stress_test(void);
-extern void el2_exception_init(void);
-
-
-void test_memset(void)
-{
-    char buffer[20];
-    memset(buffer, 'A', sizeof(buffer));
-    buffer[19] = '\0';
-    printf("memset test: %s\n", buffer);
-}
-
-void test_memcpy(void)
-{
-    char src[] = "Hello, World!";
-    char dest[20];
-    memcpy(dest, src, strlen(src) + 1);
-    printf("memcpy test: %s\n", dest);
-}
-
-void test_rand()
-{
-    srand(tick_el2());
-    printf("rand test: ");
-    for (int i = 0; i < 5; i++) {
-        printf("%d ", rand());
-    }
-    printf("\n");
-}
 
 extern uint64_t __heap_start;
 
@@ -51,32 +22,41 @@ static void test_timer_cb(zhyper_timer_t *timer, void *arg)
     printf("Timer callback invoked! Counter: %d\n", s_count);
 }
 
+static int __miniheap_init(void)
+{
+    miniheap_init(&g_miniheap, (void *)&__heap_start, ZHYPER_HEAP_SIZE);
+    return 0;
+}
+
 int platform_init() {
 
-    const console_t *pl011_console = find_console("pl011");
+    const console_t *pl011_console = NULL;
+    static once_flag_t miniheap_init_once = ONCE_INITIALIZER;
+    el2_exception_init();
+
+    pl011_console = find_console("pl011");
     if (pl011_console) {
         console_init(pl011_console);
     } else {
         panic("pl011 console not found\n");
     }
 
-    el2_exception_init();
+    run_once(&miniheap_init_once, __miniheap_init);
 
-    miniheap_init(&g_miniheap, (void *)&__heap_start, ZHYPER_HEAP_SIZE);
+    printf("Platform initialization started\n");
 
-    gicv3_percpu_init();
 
-    percpu_timer_init(1000/HZ);
+    plat_gicv3_init();
+    plat_timer_init(1000/HZ);
     
     zhyper_timer_t *timer = create_timer_periodic(1000, test_timer_cb, NULL);
     start_timer(timer, NULL);
 
-    printf("current EL: %d\n", get_current_el());
-    printf("pstate: %x\n", pstate());
-    printf("Platform initialized \n");
+    printf("software EL: %d\n", get_current_el());
+
+    printf("Platform initialized\n");
 
     while (1) {
-        // printf("wfi\n");
         wfi();
     }
 

@@ -58,13 +58,10 @@ static int __gicr_set_clear_ppi(irq_context_t *ctx, bool set)
     reg_offset = ctx->intid >> 5; // each ISENABLER/ICENABLER register configures 32 interrupts
     bit_offset = ctx->intid & 0x1F; // each interrupt has 1 bit in ISENABLER/ICENABLER
 
-    printf("trace: set_clear_ppi: intid=%u, set=%d\n", ctx->intid, set);
     if (set) {
         write32((paddr_t)&gicr_ctx->gicr_sgi_regs->isenabler0 + reg_offset, (1U << bit_offset));
     } else {
-        printf("trace: clear ppi: intid=%u\n", ctx->intid);
         write32((paddr_t)&gicr_ctx->gicr_sgi_regs->icenabler0 + reg_offset, (1U << bit_offset));
-        printf("trace: waiting for rwp...\n");
         gicr_wait_rwp();
     }
 

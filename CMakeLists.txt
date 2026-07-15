@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(z-hyper)
+project(z-hyper C ASM)
 
 enable_language(C ASM)
 

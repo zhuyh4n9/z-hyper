@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include "atomic/barriar.h"
 
 #include "utils/types.h"
 
@@ -110,13 +111,8 @@ static inline uint32_t get_current_el(void)
 static inline void hang(void)
 {
     while (1) {
-        asm volatile ("wfi");
+        wfi();
     }
-}
-
-static inline void wfi(void)
-{
-    asm volatile ("wfi");
 }
 
 static inline uint32_t pstate(void)
@@ -175,14 +171,6 @@ static inline uint64_t read64(paddr_t addr)
     asm volatile ("msr " #reg ", %0" : : "r" (val)); \
 } while (0)
 
-#define irq_enable() do { \
-    asm volatile ("msr DAIFClr, #2"); \
-} while (0)
-
-#define irq_disable() do { \
-    asm volatile ("msr DAIFSet, #2"); \
-} while (0)
-
 static inline uint32_t cpu_id(void)
 {
     uint64_t mpidr;
@@ -193,14 +181,21 @@ static inline uint32_t cpu_id(void)
 #define HCR_EL2_IMO   (1UL << 4)
 #define HCR_EL2_FMO   (1UL << 5)
 
-static inline int enable_el2_irq(void)
+static inline int irq_enable(void)
 {
     uint64_t hcr_el2 = read_sysreg(HCR_EL2);
     hcr_el2 |= HCR_EL2_IMO | HCR_EL2_FMO; // Enable IRQ routing to EL2
     write_sysreg(HCR_EL2, hcr_el2);
-    asm volatile ("isb");
+    asm volatile ("msr DAIFClr, #2");
+    isb();
     return 0;
 }
 
+static inline int irq_disable(void)
+{
+    asm volatile ("msr DAIFSet, #2");
+    isb();
+    return 0;
+}
 
 #endif

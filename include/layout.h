@@ -6,4 +6,6 @@
 
 #define MAX_SUPPORTED_CPUS          8
 
+#define PL011_BASE_ADDR  ((paddr_t)0x09000000)
+
 #define ZHYPER_HEAP_SIZE 0x100000 /* 1MB heap */

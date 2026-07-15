@@ -1,13 +1,14 @@
-#include "pl011/pl011.h"
-#include "aarch64_utils.h"
-#include "timer/timer.h"
-#include "debug.h"
-#include "utils/miniheap.h"
-#include "layout.h"
-#include "gic/gicv3.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+
+#include <aarch64_utils.h>
+#include <timer/timer.h>
+#include <debug.h>
+#include <utils/miniheap.h>
+#include <layout.h>
+#include <gic/gicv3.h>
+#include <utils/console.h>
 
 void miniheap_reliability_stress_test(void);
 extern void el2_exception_init(void);
@@ -51,16 +52,20 @@ static void test_timer_cb(zhyper_timer_t *timer, void *arg)
 }
 
 int platform_init() {
-    pl011_init(0x09000000);
+
+    const console_t *pl011_console = find_console("pl011");
+    if (pl011_console) {
+        console_init(pl011_console);
+    } else {
+        panic("pl011 console not found\n");
+    }
 
     el2_exception_init();
-    enable_el2_irq();
-    irq_enable();
 
     miniheap_init(&g_miniheap, (void *)&__heap_start, ZHYPER_HEAP_SIZE);
 
-    gicv3_init();
     gicv3_percpu_init();
+
     percpu_timer_init(1000/HZ);
     
     zhyper_timer_t *timer = create_timer_periodic(1000, test_timer_cb, NULL);

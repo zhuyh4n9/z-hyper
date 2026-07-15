@@ -17,18 +17,19 @@ include_directories(${CMAKE_SOURCE_DIR}/include
                     ${CMAKE_SOURCE_DIR}/platform/aarch64/driver/gic/common/)
 set(CMAKE_ASM_FLAGS "-ffreestanding -Wextra -Wfatal-errors -Werror -O0 -D__ASSEMBLY__")
 set(BUILD_FLAGS "-Wall -Wextra -Werror -O0 -g -nostdlib -ffreestanding -mstrict-align")
-set(CMAKE_C_FLAGS "${BUILD_FLAGS} -DNR_CPU=${NR_CPU} -DHZ=${HZ}")
+set(CMAKE_C_FLAGS "${BUILD_FLAGS} -DNR_CPU=${NR_CPU} -DHZ=${HZ} -DTRACE_ON=${TRACE_ON}")
 
 add_executable(z-hyper.elf
+    src/libc/string.c
+    src/libc/printf.c
+    src/libc/rand.c
+    src/libc/miniheap.c
+    src/libc/console.c
     platform/aarch64/main/start.S
     platform/aarch64/main/el2_sync.c
     platform/aarch64/main/exception.S
     platform/aarch64/main/main.c
     unittest/miniheap_stress_test.c
-    src/libc/string.c
-    src/libc/printf.c
-    src/libc/rand.c
-    src/libc/miniheap.c
     platform/aarch64/timer/timer.c
     platform/aarch64/driver/pl011/pl011.c
     platform/aarch64/driver/gic/common/gicv3.c

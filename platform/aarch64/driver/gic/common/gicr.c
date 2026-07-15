@@ -15,7 +15,7 @@ void gicr_wait_rwp(void)
     if (gicr_ctx == NULL || gicr_ctx->gicr_regs == NULL) {
         panic("Failed to get GICR context\n");
     }
-
+    isb();
     while (gicr_rwp(gicr_ctx)) {
         ;
     }
@@ -56,6 +56,7 @@ int gicr_init(gicr_context_t *gicr_ctx, uint32_t cpu_id)
     if (waker & GICR_WAKER_PROCESSORSLEEP) {
         waker &= ~GICR_WAKER_PROCESSORSLEEP;
         write32((paddr_t)&gicr_ctx->gicr_regs->waker, waker);
+        isb();
         while (read32((paddr_t)&gicr_ctx->gicr_regs->waker) & GICR_WAKER_CHILDRENASLEEP) {
             ;
         }

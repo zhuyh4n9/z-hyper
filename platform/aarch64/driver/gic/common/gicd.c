@@ -1,5 +1,4 @@
 #include "utils/utils.h"
-#include "utils/zprint.h"
 #include "utils/types.h"
 #include "utils/errno.h"
 #include "aarch64_utils.h"
@@ -19,6 +18,7 @@ void gicd_wait_rwp(void)
         panic("Failed to get GICD context\n");
     }
 
+    isb();
     while (gicd_rwp(gicd_ctx)) {
         ;
     }
@@ -62,6 +62,7 @@ uint32_t gicd_reset_status(uint32_t status)
     }
 
     write32((paddr_t)&gicd_ctx->gicd_regs->statusr, status & GICD_STATUS_MASK);
+    isb();
 
     return 0;
 }
@@ -133,6 +134,7 @@ int gicd_init(void)
         // must wait for RWP bit to clear before writing to ICENABLER
         gicd_wait_rwp();
     }
+    isb();
 
     printf("gicd init done!\n");
     gicv3_show_distributor(gicd_ctx);

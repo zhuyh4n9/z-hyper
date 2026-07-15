@@ -2,8 +2,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
-#include "debug.h"
-#include "pl011/pl011.h"
+
+#include "utils/utils.h"
 
 #define va_list         __builtin_va_list
 #define va_start(v, l)  __builtin_va_start(v, l)
@@ -15,25 +15,6 @@ enum printopt {
     PRINT_0X      = 1 << 0,
     ZERO_PADDING  = 1 << 1,
 };
-
-int putchar(int c)
-{
-    // Implement your character output function here.
-    // For example, write to a UART or console.
-    // This is a placeholder implementation.
-    pl011_putchar(c);
-    return c;
-}
-
-int puts(const char *s)
-{
-    int count = 0;
-    while (*s) {
-        putchar(*s++);
-        count++;
-    }
-    return count;
-}
 
 static void print64(int64_t num, int base, bool sign, int digit, enum printopt opt)
 {
@@ -191,15 +172,6 @@ int __printf_chk(int flag, const char *fmt, ...)
     va_start(ap, fmt);
     vprintf(fmt, ap);
     va_end(ap);
-    return 0;
-}
-
-int fflush(FILE *stream)
-{
-    (void)stream;
-    // Implement flush if necessary for your output device.
-    // This is a placeholder implementation.
-    pl011_flush();
     return 0;
 }
 

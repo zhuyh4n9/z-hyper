@@ -1,11 +1,13 @@
-#include "utils/utils.h"
-#include "utils/zprint.h"
-#include "utils/types.h"
-#include "utils/errno.h"
-#include "aarch64_utils.h"
-#include "gic/gicv3.h"
-#include "debug.h"
 #include <stdint.h>
+
+#include <utils/utils.h>
+#include <utils/types.h>
+#include <utils/errno.h>
+#include <aarch64_utils.h>
+#include <gic/gicv3.h>
+#include <debug.h>
+#include <atomic/atomic.h>
+#include <spinlock/spinlock.h>
 
 #define GICV3_INTERNAL
 #include "private/gicv3_internal.h"
@@ -13,21 +15,37 @@
 
 #include <stdbool.h>
     
-int gicv3_init(void)
+static int gicv3_init(void)
 {
     gicd_context_t *gicd_ctx = __get_gicd();
 
     if (gicd_ctx == NULL) {
         panic("Failed to get GICD context\n");
     }
-
+    irq_enable();
     gicd_init();
 
     return 0;
 }
 
+static atomic_t s_gicd_init_counter = {0};
+static atomic_t s_gicd_init_done = {0};
+
 int gicv3_percpu_init(void)
 {
+
+    if (atomic_inc_return(&s_gicd_init_counter) == 1) {
+        gicv3_init();
+        atomic_set(&s_gicd_init_done, 1);
+        smp_wmb();
+    }
+
+    smp_rmb();
+    // waiting for gicd_init to complete
+    while (atomic_read(&s_gicd_init_done) == 0) {
+        ;
+    }
+
     gicr_context_t *gicr_ctx = __get_this_gicr();
     int ret = 0;
     uint32_t ctlr = 0;

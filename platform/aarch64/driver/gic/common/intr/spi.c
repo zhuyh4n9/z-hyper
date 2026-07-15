@@ -1,5 +1,4 @@
 #include "utils/utils.h"
-#include "utils/zprint.h"
 #include "utils/types.h"
 #include "utils/errno.h"
 #include "aarch64_utils.h"

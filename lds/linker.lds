@@ -18,6 +18,10 @@ SECTIONS
     . = ZHIMGE_VADDR;
     .text.boot : { *(.text.boot) } :text
     . = ALIGN(0x1000);
+    .xtable : {
+        *(.xlate) *(.xtable.*)
+    } :data
+    . = ALIGN(0x1000);
     .text : {
         *(.text) *(.text.*)
     } :text

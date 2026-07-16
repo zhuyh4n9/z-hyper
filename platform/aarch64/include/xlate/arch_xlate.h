@@ -1,5 +1,5 @@
-#ifndef __PAGE_TABLE_H__
-#define __PAGE_TABLE_H__
+#ifndef __ARCH_XLATE_H__
+#define __ARCH_XLATE_H__
 
 #include <stdint.h>
 

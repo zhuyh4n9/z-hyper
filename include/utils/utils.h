@@ -33,4 +33,10 @@ static inline int run_once(once_flag_t *once, int (*func)(void))
     return ret;
 }
 
+#define RUN_ONCE(func)      \
+    do { \
+        static once_flag_t once = ONCE_INITIALIZER; \
+        run_once(&once, func); \
+    } while (0)
+
 #endif

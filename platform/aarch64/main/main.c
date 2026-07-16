@@ -31,7 +31,6 @@ static int __miniheap_init(void)
 int platform_init() {
 
     const console_t *pl011_console = NULL;
-    static once_flag_t miniheap_init_once = ONCE_INITIALIZER;
     el2_exception_init();
 
     pl011_console = find_console("pl011");
@@ -41,7 +40,7 @@ int platform_init() {
         panic("pl011 console not found\n");
     }
 
-    run_once(&miniheap_init_once, __miniheap_init);
+    RUN_ONCE(__miniheap_init);
 
     printf("Platform initialization started\n");
 

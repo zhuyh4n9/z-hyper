@@ -4,40 +4,42 @@ project(z-hyper C ASM)
 
 enable_language(C ASM)
 
-set(CROSS_COMPILE 		aarch64-linux-gnu-)
-set(CMAKE_C_COMPILER 	"${CROSS_COMPILE}gcc-14")
-set(CMAKE_ASM_COMPILER 	"${CROSS_COMPILE}gcc-14")
-set(CMAKE_LINKER 		"${CROSS_COMPILE}ld")
-set(CMAKE_ASM_FLAGS 	"-march=armv8-a+nosimd+nofp")
+# ── 交叉编译工具链 ──────────────────────────────────
+set(CROSS_COMPILE       aarch64-linux-gnu-)
+set(CMAKE_C_COMPILER    "${CROSS_COMPILE}gcc-14")
+set(CMAKE_ASM_COMPILER  "${CROSS_COMPILE}gcc-14")
+set(CMAKE_LINKER        "${CROSS_COMPILE}ld")
 
-include_directories(${CMAKE_SOURCE_DIR}/include
-                    ${CMAKE_SOURCE_DIR}/include/libc
-                    ${CMAKE_SOURCE_DIR}/platform/aarch64/include
-                    ${CMAKE_SOURCE_DIR}/platform/aarch64/include/driver
-                    ${CMAKE_SOURCE_DIR}/platform/aarch64/driver/gic/common/)
-set(CMAKE_ASM_FLAGS "-ffreestanding -Wextra -Wfatal-errors -Werror -O0 -D__ASSEMBLY__")
-set(BUILD_FLAGS "-Wall -Wextra -Werror -O0 -g -nostdlib -ffreestanding -mstrict-align")
-set(CMAKE_C_FLAGS "${BUILD_FLAGS} -DNR_CPU=${NR_CPU} -DHZ=${HZ} -DTRACE_ON=${TRACE_ON}")
+# ── 全局 include 路径 ───────────────────────────────
+include_directories(
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/include/libc
+    ${CMAKE_SOURCE_DIR}/platform/aarch64/include
+    ${CMAKE_SOURCE_DIR}/platform/aarch64/include/driver
+    ${CMAKE_SOURCE_DIR}/platform/aarch64/driver/gic/common/
+)
 
+# ── 编译标志 ────────────────────────────────────────
+set(CMAKE_ASM_FLAGS  "-march=armv8-a+nosimd+nofp")
+set(CMAKE_ASM_FLAGS  "-ffreestanding -Wextra -Wfatal-errors -Werror -O0 -D__ASSEMBLY__")
+set(BUILD_FLAGS      "-Wall -Wextra -Werror -O0 -g -nostdlib -ffreestanding -mstrict-align")
+set(CMAKE_C_FLAGS    "${BUILD_FLAGS} -DNR_CPU=${NR_CPU} -DHZ=${HZ} -DTRACE_ON=${TRACE_ON}")
+
+# ── 子模块 ──────────────────────────────────────────
+add_subdirectory(src/libc)
+add_subdirectory(platform/aarch64/main)
+add_subdirectory(platform/aarch64/timer)
+add_subdirectory(platform/aarch64/driver)
+# add_subdirectory(platform/aarch64/vcpu)   # 开发中
+add_subdirectory(unittest)
+
+# ── 链接 ────────────────────────────────────────────
 add_executable(z-hyper.elf
-    src/libc/string.c
-    src/libc/printf.c
-    src/libc/rand.c
-    src/libc/miniheap.c
-    src/libc/console.c
-    platform/aarch64/main/start.S
-    platform/aarch64/main/el2_sync.c
-    platform/aarch64/main/exception.S
-    platform/aarch64/main/main.c
-    unittest/miniheap_stress_test.c
-    platform/aarch64/timer/timer.c
-    platform/aarch64/driver/pl011/pl011.c
-    platform/aarch64/driver/gic/common/gicv3.c
-    platform/aarch64/driver/gic/common/gicr.c
-    platform/aarch64/driver/gic/common/gicd.c
-    platform/aarch64/driver/gic/common/intr/spi.c
-    platform/aarch64/driver/gic/common/intr/ppi.c
-    platform/aarch64/driver/gic/common/intr/sgi.c
+    $<TARGET_OBJECTS:libc>
+    $<TARGET_OBJECTS:platform_main>
+    $<TARGET_OBJECTS:platform_timer>
+    $<TARGET_OBJECTS:platform_driver>
+    $<TARGET_OBJECTS:unittest>
 )
 
 target_link_options(z-hyper.elf PRIVATE
